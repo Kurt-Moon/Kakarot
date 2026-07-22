@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travlli Pro | AI 스마트 자유여행 플래너</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        :root {
+            --navy: #0f172a;
+            --navy-light: #1e293b;
+            --coral: #ff5a5f;
+            --coral-hover: #e0484d;
+            --amber: #f59e0b;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); -webkit-font-smoothing: antialiased; }
+
+        /* Navigation */
+        .navbar { background: var(--navy); color: white; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 1.4rem; font-weight: 900; letter-spacing: -0.5px; color: white; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .logo-badge { background: var(--coral); color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
+
+        /* Container */
+        .container { max-width: 1240px; margin: 24px auto; padding: 0 20px; }
+
+        /* Hero Landing */
+        .hero { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%); color: white; padding: 5rem 2rem; border-radius: 24px; text-align: center; position: relative; overflow: hidden; margin-bottom: 2rem; }
+        .hero h1 { font-size: 2.5rem; font-weight: 900; margin-bottom: 1rem; }
+        .hero p { font-size: 1.1rem; color: #94a3b8; margin-bottom: 2rem; }
+        .hero-search-box { max-width: 550px; margin: 0 auto; position: relative; }
+        .hero-search-input { width: 100%; padding: 16px 20px 16px 50px; border-radius: 16px; border: none; font-size: 1rem; font-weight: 600; outline: none; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .hero-search-icon { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; }
+        .search-results-dropdown { position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: white; border-radius: 16px; color: var(--text-main); text-align: left; box-shadow: 0 10px 30px rgba(0,0,0,0.15); max-height: 300px; overflow-y: auto; z-index: 200; }
+        .search-item { padding: 14px 20px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .search-item:hover { background: var(--bg); }
+
+        /* Setup Flow */
+        .setup-card { background: white; border-radius: 24px; padding: 40px; max-width: 680px; margin: 40px auto; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.04); }
+        .step-badge { color: var(--coral); font-weight: 800; font-size: 0.85rem; margin-bottom: 8px; text-transform: uppercase; }
+        .setup-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; }
+        .setup-sub { color: var(--text-sub); margin-bottom: 28px; font-size: 0.95rem; }
+        .grid-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .option-card { background: var(--bg); border: 2px solid var(--border); border-radius: 16px; padding: 20px 16px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .option-card:hover { border-color: var(--coral); }
+        .option-card.active { border-color: var(--coral); background: #fff0f1; color: var(--coral); font-weight: 700; }
+        .btn-action { width: 100%; background: var(--navy); color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 800; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+        .btn-action:hover { background: var(--navy-light); }
+        .btn-action:disabled { background: var(--border); cursor: not-allowed; }
+        .btn-secondary { width: 100%; background: white; color: var(--text-sub); border: 2px solid var(--border); padding: 12px; border-radius: 14px; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-bottom: 12px; }
+
+        .custom-days-row { display: flex; align-items: center; gap: 12px; background: var(--bg); border: 2px solid var(--border); border-radius: 16px; padding: 16px 20px; margin-bottom: 24px; }
+        .custom-days-row input[type="number"] { width: 80px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); font-size: 1.1rem; font-weight: 800; text-align: center; }
+        .custom-days-label { font-weight: 700; font-size: 0.92rem; color: var(--text-sub); }
+
+        /* Briefing Section */
+        .hero-briefing { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%); color: white; padding: 28px; border-radius: 20px; box-shadow: 0 10px 30px rgba(15,23,42,0.15); margin-bottom: 24px; }
+        .briefing-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+        .briefing-title h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
+        .briefing-title p { font-size: 0.9rem; color: #94a3b8; }
+        .briefing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+        .briefing-card { background: rgba(255, 255, 255, 0.06); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); padding: 16px; border-radius: 14px; position: relative; }
+        .briefing-label { font-size: 0.8rem; color: #94a3b8; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .briefing-value { font-size: 1.3rem; font-weight: 800; color: var(--amber); margin-top: 6px; }
+        .briefing-subvalue { font-size: 0.76rem; color: #94a3b8; margin-top: 4px; }
+        .btn-cta-hotel { display: inline-block; width: 100%; margin-top: 10px; padding: 8px 12px; background: var(--coral); color: white; text-align: center; border-radius: 8px; text-decoration: none; font-size: 0.82rem; font-weight: 700; transition: all 0.2s; }
+        .btn-cta-hotel:hover { background: var(--coral-hover); }
+        .currency-select { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 8px; padding: 6px 10px; font-size: 0.8rem; font-weight: 700; }
+        .currency-select option { color: var(--text-main); }
+
+        /* Main Planner Layout */
+        .planner-layout { display: grid; grid-template-columns: 360px 1fr; gap: 24px; }
+        .sidebar { background: var(--card-bg); padding: 24px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.03); height: fit-content; max-height: 85vh; overflow-y: auto; }
+        .section-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+        .place-search-input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.85rem; margin-bottom: 12px; outline: none; }
+        .place-search-input:focus { border-color: var(--coral); }
+
+        .category-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .btn-tab { padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); background: white; font-size: 0.78rem; font-weight: 700; color: var(--text-sub); cursor: pointer; }
+        .btn-tab.active { background: var(--coral); color: white; border-color: var(--coral); }
+
+        .place-card-sm { background: var(--bg); border: 1px solid var(--border); padding: 14px; border-radius: 12px; margin-bottom: 10px; cursor: grab; transition: all 0.2s; }
+        .place-card-sm:hover { border-color: var(--coral); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .place-card-sm.selected-tap { border-color: var(--coral); background: #fff0f1; }
+
+        .btn-add-custom { width: 100%; background: white; border: 2px dashed var(--border); color: var(--text-sub); padding: 12px; border-radius: 12px; font-weight: 700; font-size: 0.85rem; cursor: pointer; margin-top: 4px; }
+        .btn-add-custom:hover { border-color: var(--coral); color: var(--coral); }
+        .custom-place-form { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .custom-place-form input, .custom-place-form select { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.82rem; }
+        .custom-place-form-row { display: flex; gap: 8px; }
+        .btn-form-submit { background: var(--navy); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
+
+        .timeline-container { background: var(--card-bg); padding: 28px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .day-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 2px solid var(--bg); margin-bottom: 20px; gap: 10px; flex-wrap: wrap; }
+        .day-title { font-size: 1.25rem; font-weight: 800; }
+
+        .btn-optimize { padding: 6px 12px; background: var(--navy); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; }
+        .btn-optimize:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+        .slot-card { background: var(--bg); border: 2px dashed #cbd5e1; border-radius: 16px; padding: 18px; margin-bottom: 12px; position: relative; transition: all 0.2s; cursor: pointer; }
+        .slot-card.has-item { border-style: solid; border-color: var(--border); background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.02); cursor: default; }
+        .slot-card.drag-over { border-color: var(--coral); background: #fff0f1; }
+        .slot-card.slot-picked { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(245,158,11,0.25); }
+
+        .slot-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--text-sub); font-weight: 600; margin-bottom: 6px; gap: 8px; flex-wrap: wrap; }
+        .slot-time-label { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+        .stay-duration { font-size: 80%; white-space: nowrap; }
+        .inline-input { border: 1px solid transparent; background: transparent; font-weight: 700; font-size: 0.82rem; color: var(--text-sub); border-radius: 6px; padding: 2px 4px; font-family: inherit; }
+        .inline-input:hover, .inline-input:focus { border-color: var(--border); background: white; outline: none; }
+        .time-input { width: 54px; flex-shrink: 0; }
+        .label-input { flex: 1; min-width: 60px; }
+        .slot-meta-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .btn-icon-action { background: none; border: none; color: #cbd5e1; cursor: pointer; font-size: 0.9rem; flex-shrink: 0; line-height: 1; }
+        .btn-icon-action:hover { color: var(--coral); }
+
+        .slot-name { font-size: 1.1rem; font-weight: 800; color: var(--text-main); }
+        .slot-cost { font-size: 0.88rem; color: var(--text-sub); margin-top: 4px; }
+        .slot-cost-converted { color: var(--coral); font-weight: 700; }
+        .slot-tip { font-size: 0.78rem; color: var(--text-sub); margin-top: 6px; background: var(--bg); padding: 6px 10px; border-radius: 8px; }
+
+        .highlight-list { list-style: none; margin: 8px 0 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+        .highlight-list li { font-size: 0.8rem; color: var(--text-sub); }
+        .menu-list { margin-top: 8px; }
+        .menu-list-title { font-size: 0.78rem; font-weight: 700; color: var(--text-sub); margin-bottom: 4px; }
+        .menu-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .menu-chip { background: #fff0f1; color: var(--coral); font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+
+        .place-photo { width: 100%; height: 130px; object-fit: cover; border-radius: 10px; margin-bottom: 10px; background: #e2e8f0; display: block; }
+        .place-photo-fallback { display: flex; align-items: center; justify-content: center; font-size: 2.2rem; color: #94a3b8; }
+        .place-photo-sm { height: 72px; margin-bottom: 8px; }
+
+        .empty-slot-hint { text-align: center; color: var(--text-sub); font-size: 0.88rem; padding: 10px; }
+
+        .btn-add-slot { width: 100%; background: white; border: 2px dashed var(--border); color: var(--text-sub); padding: 12px; border-radius: 14px; font-weight: 700; font-size: 0.85rem; cursor: pointer; margin-bottom: 8px; }
+        .btn-add-slot:hover { border-color: var(--coral); color: var(--coral); }
+
+        .hotel-slot { display: flex; flex-direction: column; gap: 8px; }
+        .hotel-name-input { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.92rem; font-weight: 700; }
+        .hotel-cost-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-sub); }
+        .hotel-cost-input { flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85rem; }
+
+        .affiliate-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 6px 12px; background: #fff0f1; border: 1px solid #ffccd5; color: var(--coral); border-radius: 8px; text-decoration: none; font-size: 0.8rem; font-weight: 700; transition: all 0.2s; }
+        .affiliate-link:hover { background: var(--coral); color: white; }
+
+        .transit-badge { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 8px 0 16px 0; color: var(--text-sub); font-size: 0.82rem; font-weight: 600; }
+        .transit-line { flex: 1; height: 1px; background: #cbd5e1; border-dash: 2px dashed; }
+
+        .route-map-wrap { border-radius: 12px; overflow: hidden; margin-bottom: 16px; border: 1px solid var(--border); }
+        .route-map { width: 100%; height: 220px; background: #e2e8f0; }
+        .route-marker-num { background: var(--navy); color: white; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+        .route-map-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-sub); font-size: 0.85rem; }
+
+        .summary-panel { position: fixed; bottom: 20px; right: 20px; background: var(--navy); color: white; padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); min-width: 280px; z-index: 90; }
+        .btn-download { width: 100%; background: var(--coral); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 800; margin-top: 12px; cursor: pointer; }
+        .btn-download:disabled { background: #64748b; cursor: not-allowed; }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .planner-layout { grid-template-columns: 1fr; }
+            .summary-panel { position: static; margin-top: 24px; min-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // 💡 실전 파트너 어필리에이트 코드 (발급 후 추가)
+        const AFFILIATE_CONFIG = {
+            KLOOK_AID: "",
+            AGODA_CID: ""
+        };
+
+        // 데이터베이스 (단일 소스 원칙)
+        const CITIES_MASTER = [
+            { id: 'tokyo', name: '도쿄', country: '일본', emoji: '🇯🇵', hub: '도쿄역 / 긴자 구역', agodaCity: 'tokyo-jp', skyscannerCode: 'tyoa', currency: 'JPY' },
+            { id: 'osaka', name: '오사카', country: '일본', emoji: '🇯🇵', hub: '난바 / 우메다 구역', agodaCity: 'osaka-jp', skyscannerCode: 'osaa', currency: 'JPY' }
+        ];
+
+        // 관광지/맛집 DB - 즐길거리 포인트(highlights)와 대표메뉴(menu) 정보를 포함
+        const PLACES_DB = {
+            tokyo: [
+                { id: 't1', name: '시부야 스카이', category: 'spot', lat: 35.6580, lng: 139.7016, duration: 90, cost: 2200, bookable: true, tip: '일몰 30분 전 입장 추천',
+                    highlights: ['360도 파노라마 도심 전망', '노을 시간대 인생샷 명소', '루프탑 오픈에어 전망대 체험'] },
+                { id: 't2', name: '센소지', category: 'spot', lat: 35.7148, lng: 139.7967, duration: 60, cost: 0, bookable: false, tip: '오전 8시 전 방문 시 한적함',
+                    highlights: ['가미나리몬 대형 초롱 포토존', '나카미세도리 전통 먹거리 거리', '오미쿠지(운세뽑기) 체험'] },
+                { id: 't3', name: '팀랩 보더리스', category: 'spot', lat: 35.6256, lng: 139.7756, duration: 120, cost: 4200, bookable: true, tip: '흰색 하의 착용 추천',
+                    highlights: ['경계 없는 몰입형 디지털 아트', '시시각각 변하는 인터랙티브 공간', '포토제닉한 미디어아트 연출'] },
+                { id: 't7', name: '메이지 신궁', category: 'spot', lat: 35.6764, lng: 139.6993, duration: 70, cost: 0, bookable: false, tip: '하라주쿠역에서 도보 이동 편리',
+                    highlights: ['도심 속 울창한 숲길 산책', '전통 신사 건축과 도리이 관람', '운 좋으면 전통 결혼식 행렬 목격'] },
+                { id: 't8', name: '도쿄 스카이트리', category: 'spot', lat: 35.7101, lng: 139.8107, duration: 100, cost: 3100, bookable: true, tip: '맑은 날 예약하면 후지산 조망 가능',
+                    highlights: ['도쿄에서 가장 높은 전망대 조망', '맑은 날 후지산 조망 가능', '하단 소라마치 쇼핑몰 연계 관람'] },
+                { id: 't9', name: '신주쿠 고엔', category: 'spot', lat: 35.6852, lng: 139.7100, duration: 80, cost: 500, bookable: false, tip: '벚꽃/단풍 시즌은 오픈런 추천',
+                    highlights: ['도심 속 대규모 정원 산책', '봄 벚꽃, 가을 단풍 명소', '일본식/영국식/프랑스식 정원 비교 관람'] },
+                { id: 't4', name: '규카츠 모토무라 (시부야점)', category: 'food', lat: 35.6595, lng: 139.7004, duration: 50, cost: 1800, bookable: false, tip: '점심시간 직후 대기 짧음',
+                    menu: ['규카츠 정식', '특제 다시소스 규카츠'] },
+                { id: 't5', name: '이치란 라멘 (신주쿠점)', category: 'food', lat: 35.6908, lng: 139.7015, duration: 45, cost: 1200, bookable: false, tip: '1인석 칸막이로 편리한 식사',
+                    menu: ['돈코츠 라멘 (오리지널)', '차슈 토핑 라멘'] },
+                { id: 't6', name: '스시 다이 (츠키지)', category: 'food', lat: 35.6654, lng: 139.7707, duration: 60, cost: 4500, bookable: false, tip: '오픈 전 웨이팅 각오',
+                    menu: ['오마카세 니기리 세트', '제철 계절 스시'] },
+                { id: 't10', name: '돈카츠 마이센 (아오야마 본점)', category: 'food', lat: 35.6690, lng: 139.7160, duration: 50, cost: 2000, bookable: false, tip: '옛 목욕탕을 개조한 독특한 매장 분위기',
+                    menu: ['히레카츠 정식', '로스카츠 정식'] }
+            ],
+            osaka: [
+                { id: 'o1', name: '오사카성', category: 'spot', lat: 34.6873, lng: 135.5262, duration: 90, cost: 600, bookable: true, tip: '천수각 전망대 필수',
+                    highlights: ['웅장한 천수각 외관 감상', '성 내부 역사 전시 관람', '니시노마루 정원에서의 전망'] },
+                { id: 'o2', name: '도톤보리', category: 'spot', lat: 34.6687, lng: 135.5013, duration: 90, cost: 0, bookable: false, tip: '글리코상 야경 포토존',
+                    highlights: ['글리코 상 등 대형 간판 야경', '리버크루즈로 즐기는 수변 야경', '다양한 길거리 음식 탐방'] },
+                { id: 'o3', name: '유니버설 스튜디오 재팬', category: 'spot', lat: 34.6654, lng: 135.4323, duration: 300, cost: 8600, bookable: true, tip: '익스프레스 패스 사전구매 권장',
+                    highlights: ['슈퍼 닌텐도 월드 체험', '인기 IP 테마 라이드 탑승', '테마파크 한정 굿즈 쇼핑'] },
+                { id: 'o5', name: '신사이바시 상점가', category: 'spot', lat: 34.6730, lng: 135.5010, duration: 90, cost: 0, bookable: false, tip: '아케이드형이라 우천시에도 쇼핑 가능',
+                    highlights: ['600m 아케이드 쇼핑 스트리트', '트렌디 편집숍과 로컬 브랜드', '도톤보리와 도보 연계 관광'] },
+                { id: 'o4', name: '다루마 쿠시카츠', category: 'food', lat: 34.6627, lng: 135.5005, duration: 45, cost: 1500, bookable: false, tip: '소스 두 번 찍기 금지 매너',
+                    menu: ['모듬 쿠시카츠 세트', '소고기 쿠시카츠'] },
+                { id: 'o6', name: '치보 오코노미야키 (도톤보리 본점)', category: 'food', lat: 34.6690, lng: 135.5022, duration: 50, cost: 1600, bookable: false, tip: '직접 구워주는 좌석이 인기',
+                    menu: ['돼지고기 오코노미야키', '모던야키'] }
+            ]
+        };
+
+        // URL 빌더 함수
+        function buildTicketUrl(query) {
+            const q = encodeURIComponent(query);
+            const aid = AFFILIATE_CONFIG.KLOOK_AID ? `&aid=${AFFILIATE_CONFIG.KLOOK_AID}` : '';
+            return `https://www.klook.com/ko/search/result/?query=${q}${aid}`;
+        }
+
+        function buildHotelUrl(agodaCity) {
+            const cid = AFFILIATE_CONFIG.AGODA_CID ? `?cid=${AFFILIATE_CONFIG.AGODA_CID}` : '';
+            return `https://www.agoda.com/ko-kr/city/${agodaCity}.html${cid}`;
+        }
+
+        // 통화 변환 (USD 피벗 방식 - 실제 서비스 적용시 실시간 환율 API로 교체 권장)
+        const RATES_TO_USD = { JPY: 1 / 157, KRW: 1 / 1370, USD: 1, EUR: 1.08, CNY: 1 / 7.2, GBP: 1.27 };
+        const CURRENCY_META = {
+            JPY: { symbol: '¥', label: '🇯🇵 일본 (JPY)' },
+            KRW: { symbol: '₩', label: '🇰🇷 대한민국 (KRW)' },
+            USD: { symbol: '$', label: '🇺🇸 미국 (USD)' },
+            EUR: { symbol: '€', label: '🇪🇺 유럽 (EUR)' },
+            CNY: { symbol: '¥', label: '🇨🇳 중국 (CNY)' },
+            GBP: { symbol: '£', label: '🇬🇧 영국 (GBP)' }
+        };
+        function convertCurrency(amount, from, to) {
+            if (!amount || from === to) return amount || 0;
+            return amount * (RATES_TO_USD[from] / RATES_TO_USD[to]);
+        }
+        function formatMoney(amount, code) {
+            const meta = CURRENCY_META[code] || { symbol: '' };
+            return `${meta.symbol}${Math.round(amount || 0).toLocaleString()}`;
+        }
+
+        // Haversine 거리 및 이동시간 계산 공식
+        function haversineDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+        }
+
+        function calculateTransit(placeA, placeB) {
+            if (!placeA || !placeB) return { km: 0, mins: 0, mode: '도보' };
+            const dist = haversineDistance(placeA.lat, placeA.lng, placeB.lat, placeB.lng);
+            if (dist < 1) return { km: dist, mins: Math.max(5, Math.round(dist * 15)), mode: '🚶 도보' };
+            return { km: dist, mins: Math.round(dist * 4) + 10, mode: '🚇 대중교통' };
+        }
+
+        function incrementTime(time, minutesToAdd) {
+            const [h, m] = (time || '09:00').split(':').map(Number);
+            const total = ((h * 60 + m + minutesToAdd) % (24 * 60) + 24 * 60) % (24 * 60);
+            const nh = Math.floor(total / 60), nm = total % 60;
+            return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
+        }
+
+        // 동선 최적화 알고리즘 - 관광지(spot) 슬롯 간의 방문 순서를 최단 거리로 재배치
+        // 소규모(n<=7)는 전수조사로 최단 경로 탐색, 그 이상은 최근접 이웃 휴리스틱(모든 시작점 시도)
+        function optimizeDaySlots(slots) {
+            const newSlots = slots.map(s => ({ ...s }));
+            const spotIndices = newSlots.map((s, idx) => (s.item && s.item.category === 'spot' ? idx : null)).filter(v => v !== null);
+            if (spotIndices.length < 2) return newSlots;
+
+            const spotItems = spotIndices.map(i => newSlots[i].item);
+            const n = spotItems.length;
+
+            function routeDistance(order) {
+                let total = 0;
+                for (let i = 0; i < order.length - 1; i++) {
+                    total += haversineDistance(
+                        spotItems[order[i]].lat, spotItems[order[i]].lng,
+                        spotItems[order[i + 1]].lat, spotItems[order[i + 1]].lng
+                    );
+                }
+                return total;
+            }
+
+            function permutations(arr) {
+                if (arr.length <= 1) return [arr];
+                const result = [];
+                arr.forEach((item, idx) => {
+                    const rest = [...arr.slice(0, idx), ...arr.slice(idx + 1)];
+                    permutations(rest).forEach(p => result.push([item, ...p]));
+                });
+                return result;
+            }
+
+            let bestOrder;
+            if (n <= 7) {
+                const indices = spotItems.map((_, i) => i);
+                let bestDist = Infinity;
+                permutations(indices).forEach(order => {
+                    const d = routeDistance(order);
+                    if (d < bestDist) { bestDist = d; bestOrder = order; }
+                });
+            } else {
+                let bestStartDist = Infinity;
+                for (let start = 0; start < n; start++) {
+                    const visited = new Array(n).fill(false);
+                    const order = [start];
+                    visited[start] = true;
+                    for (let step = 1; step < n; step++) {
+                        const current = spotItems[order[order.length - 1]];
+                        let bestIdx = -1, bestD = Infinity;
+                        spotItems.forEach((cand, idx) => {
+                            if (!visited[idx]) {
+                                const d = haversineDistance(current.lat, current.lng, cand.lat, cand.lng);
+                                if (d < bestD) { bestD = d; bestIdx = idx; }
+                            }
+                        });
+                        visited[bestIdx] = true;
+                        order.push(bestIdx);
+                    }
+                    const d = routeDistance(order);
+                    if (d < bestStartDist) { bestStartDist = d; bestOrder = order; }
+                }
+            }
+
+            bestOrder.forEach((origIdx, pos) => {
+                newSlots[spotIndices[pos]].item = spotItems[origIdx];
+            });
+
+            return newSlots;
+        }
+
+        // 위키백과 무료 API로 대표 사진을 검색 (API 키 불필요, 매칭 실패 시 아이콘 폴백)
+        const imageCache = {};
+        function useWikiImage(title) {
+            const [url, setUrl] = useState(imageCache.hasOwnProperty(title) ? imageCache[title] : undefined);
+
+            useEffect(() => {
+                if (!title) return;
+                if (imageCache.hasOwnProperty(title)) {
+                    setUrl(imageCache[title]);
+                    return;
+                }
+                let cancelled = false;
+                fetch(`https://ko.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`)
+                    .then(res => (res.ok ? res.json() : null))
+                    .then(data => {
+                        const src = (data && (data.thumbnail?.source || data.originalimage?.source)) || null;
+                        imageCache[title] = src;
+                        if (!cancelled) setUrl(src);
+                    })
+                    .catch(() => {
+                        imageCache[title] = null;
+                        if (!cancelled) setUrl(null);
+                    });
+                return () => { cancelled = true; };
+            }, [title]);
+
+            return url;
+        }
+
+        function PlaceImage({ title, category, className }) {
+            const url = useWikiImage(title);
+            const fallbackEmoji = category === 'food' ? '🍽️' : category === 'hotel' ? '🏨' : '📍';
+            const cls = className || 'place-photo';
+            if (url) {
+                return <img src={url} alt={title} className={cls} loading="lazy" referrerPolicy="no-referrer" />;
+            }
+            return <div className={cls + ' place-photo-fallback'}>{fallbackEmoji}</div>;
+        }
+
+        // Leaflet(OSM) 실지도 위에 동선을 표시하는 컴포넌트
+        function RouteMap({ items, dayId }) {
+            const containerRef = useRef(null);
+            const mapRef = useRef(null);
+
+            useEffect(() => {
+                if (!containerRef.current || !window.L) return;
+                if (!mapRef.current) {
+                    mapRef.current = window.L.map(containerRef.current, { zoomControl: false, attributionControl: false, scrollWheelZoom: false });
+                    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; OpenStreetMap'
+                    }).addTo(mapRef.current);
+                }
+                const map = mapRef.current;
+                map.eachLayer(layer => {
+                    if (!(layer instanceof window.L.TileLayer)) map.removeLayer(layer);
+                });
+
+                if (items && items.length > 0) {
+                    const latlngs = items.map(i => [i.lat, i.lng]);
+                    items.forEach((item, idx) => {
+                        const icon = window.L.divIcon({
+                            className: 'route-marker-icon',
+                            html: `<div class="route-marker-num">${idx + 1}</div>`,
+                            iconSize: [26, 26]
+                        });
+                        window.L.marker([item.lat, item.lng], { icon }).addTo(map);
+                    });
+                    if (latlngs.length >= 2) {
+                        window.L.polyline(latlngs, { color: '#ff5a5f', weight: 3, dashArray: '6 6' }).addTo(map);
+                        map.fitBounds(latlngs, { padding: [30, 30] });
+                    } else {
+                        map.setView(latlngs[0], 15);
+                    }
+                }
+                setTimeout(() => { if (mapRef.current) mapRef.current.invalidateSize(); }, 150);
+            }, [JSON.stringify((items || []).map(i => [i.lat, i.lng]))]);
+
+            useEffect(() => () => {
+                if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+            }, []);
+
+            return (
+                <div className="route-map-wrap">
+                    <div ref={containerRef} id={`map-${dayId}-${Math.random().toString(36).slice(2, 7)}`} className="route-map" />
+                </div>
+            );
+        }
+
+        // 메인 App 컴포넌트
+        function App() {
+            const [view, setView] = useState('home'); // home, setup, planner
+            const [step, setStep] = useState(1);
+            const [selectedCity, setSelectedCity] = useState(CITIES_MASTER[0]);
+            const [durationDays, setDurationDays] = useState(3);
+            const [homeCurrency, setHomeCurrency] = useState('KRW');
+            const [categoryFilter, setCategoryFilter] = useState('all');
+            const [searchQuery, setSearchQuery] = useState('');
+            const [placeSearch, setPlaceSearch] = useState('');
+
+            // 데이터 스테이트
+            const [placeList, setPlaceList] = useState([]);
+            const [schedule, setSchedule] = useState([]);
+            const [draggedItem, setDraggedItem] = useState(null);
+            const [draggedSlotRef, setDraggedSlotRef] = useState(null);
+            const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+            const [showAddForm, setShowAddForm] = useState(false);
+            const [newPlaceDraft, setNewPlaceDraft] = useState({ name: '', category: 'spot', cost: 0, duration: 60, tip: '' });
+
+            // 도시 변경 시 기본 추천 목록 업데이트
+            useEffect(() => {
+                if (PLACES_DB[selectedCity.id]) {
+                    setPlaceList(PLACES_DB[selectedCity.id]);
+                }
+            }, [selectedCity]);
+
+            // 일정 초기 생성 (각 Day 마지막에 숙소 슬롯 자동 포함)
+            const initSchedule = (days) => {
+                const init = [];
+                for (let i = 1; i <= days; i++) {
+                    init.push({
+                        day: i,
+                        slots: [
+                            { label: '오전 관광', time: '09:30', type: 'spot', item: null },
+                            { label: '점심 식사', time: '12:30', type: 'food', item: null },
+                            { label: '오후 관광', time: '14:30', type: 'spot', item: null },
+                            { label: '저녁 식사', time: '18:30', type: 'food', item: null },
+                            { label: '숙소', time: '21:00', type: 'hotel', item: null, fixed: true }
+                        ]
+                    });
+                }
+                setSchedule(init);
+            };
+
+            const startSetup = (city) => {
+                setSelectedCity(city);
+                setView('setup');
+                setStep(1);
+            };
+
+            const finishSetup = () => {
+                initSchedule(durationDays);
+                setView('planner');
+            };
+
+            // 슬롯에 배치/스왑을 모두 처리하는 통합 커밋 함수 (드래그앤드롭 + 클릭 모두 사용)
+            const handleSlotDrop = (dayIdx, slotIdx) => {
+                if (draggedSlotRef) {
+                    if (draggedSlotRef.dayIdx === dayIdx && draggedSlotRef.slotIdx === slotIdx) {
+                        setDraggedSlotRef(null);
+                        return;
+                    }
+                    setSchedule(prev => {
+                        const next = prev.map(day => ({ ...day, slots: day.slots.map(s => ({ ...s })) }));
+                        const a = next[draggedSlotRef.dayIdx].slots[draggedSlotRef.slotIdx];
+                        const b = next[dayIdx].slots[slotIdx];
+                        const tmp = a.item;
+                        a.item = b.item;
+                        b.item = tmp;
+                        return next;
+                    });
+                    setDraggedSlotRef(null);
+                    return;
+                }
+                if (draggedItem) {
+                    setSchedule(prev => {
+                        const next = prev.map(day => ({ ...day, slots: day.slots.map(s => ({ ...s })) }));
+                        next[dayIdx].slots[slotIdx].item = draggedItem;
+                        return next;
+                    });
+                    setDraggedItem(null);
+                }
+            };
+
+            const handleSlotClick = (dayIdx, slotIdx, slot) => {
+                if (slot.type === 'hotel') return;
+                if (draggedItem) {
+                    if (!slot.item) handleSlotDrop(dayIdx, slotIdx);
+                    return;
+                }
+                if (draggedSlotRef) {
+                    handleSlotDrop(dayIdx, slotIdx);
+                    return;
+                }
+                if (slot.item) {
+                    setDraggedSlotRef({ dayIdx, slotIdx });
+                }
+            };
+
+            const handleRemoveSlot = (dayIdx, slotIdx) => {
+                setSchedule(prev => prev.map((day, idx) => {
+                    if (idx !== dayIdx) return day;
+                    return { ...day, slots: day.slots.map((s, i) => i === slotIdx ? { ...s, item: null } : s) };
+                }));
+            };
+
+            const handleOptimize = (dayIdx) => {
+                setSchedule(prev => prev.map((day, idx) => idx === dayIdx ? { ...day, slots: optimizeDaySlots(day.slots) } : day));
+            };
+
+            const addSlot = (dayIdx) => {
+                setSchedule(prev => prev.map((day, idx) => {
+                    if (idx !== dayIdx) return day;
+                    // 숙소 슬롯 앞에 새 일정 칸을 삽입
+                    const hotelIdx = day.slots.findIndex(s => s.type === 'hotel');
+                    const insertAt = hotelIdx === -1 ? day.slots.length : hotelIdx;
+                    const prevSlot = day.slots[insertAt - 1];
+                    const nextTime = prevSlot ? incrementTime(prevSlot.time, 90) : '09:00';
+                    const newSlots = [...day.slots];
+                    newSlots.splice(insertAt, 0, { label: '추가 일정', time: nextTime, type: 'spot', item: null, custom: true });
+                    return { ...day, slots: newSlots };
+                }));
+            };
+
+            const removeSlotRow = (dayIdx, slotIdx) => {
+                setSchedule(prev => prev.map((day, idx) => {
+                    if (idx !== dayIdx) return day;
+                    if (day.slots[slotIdx].fixed) return day;
+                    if (day.slots.length <= 1) return day;
+                    return { ...day, slots: day.slots.filter((_, i) => i !== slotIdx) };
+                }));
+            };
+
+            const updateSlotField = (dayIdx, slotIdx, field, value) => {
+                setSchedule(prev => prev.map((day, idx) => {
+                    if (idx !== dayIdx) return day;
+                    return { ...day, slots: day.slots.map((s, i) => i === slotIdx ? { ...s, [field]: value } : s) };
+                }));
+            };
+
+            const submitCustomPlace = () => {
+                if (!newPlaceDraft.name.trim()) return;
+                const base = PLACES_DB[selectedCity.id] || [];
+                const centerLat = base.reduce((s, p) => s + p.lat, 0) / (base.length || 1);
+                const centerLng = base.reduce((s, p) => s + p.lng, 0) / (base.length || 1);
+                const place = {
+                    id: `custom-${Date.now()}`,
+                    name: newPlaceDraft.name.trim(),
+                    category: newPlaceDraft.category,
+                    lat: centerLat,
+                    lng: centerLng,
+                    duration: Number(newPlaceDraft.duration) || 60,
+                    cost: Number(newPlaceDraft.cost) || 0,
+                    bookable: false,
+                    tip: newPlaceDraft.tip,
+                    highlights: [],
+                    menu: [],
+                    custom: true
+                };
+                setPlaceList(prev => [...prev, place]);
+                setNewPlaceDraft({ name: '', category: 'spot', cost: 0, duration: 60, tip: '' });
+                setShowAddForm(false);
+            };
+
+            const handlePDFExport = async () => {
+                setIsGeneratingPDF(true);
+                try {
+                    const el = document.getElementById('printable-area');
+                    const canvas = await window.html2canvas(el, { scale: 2, useCORS: true, allowTaint: true });
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF('p', 'mm', 'a4');
+                    const imgData = canvas.toDataURL('image/png');
+                    doc.addImage(imgData, 'PNG', 0, 0, 210, (canvas.height * 210) / canvas.width);
+                    doc.save(`Travlli_${selectedCity.name}_일정표.pdf`);
+                } catch (e) {
+                    alert('PDF 다운로드 처리 중 오류가 발생했습니다.');
+                } finally {
+                    setIsGeneratingPDF(false);
+                }
+            };
+
+            // 통계 실시간 자동 계산
+            const totalCost = schedule.reduce((sum, d) => sum + d.slots.reduce((s, slot) => s + (slot.item ? slot.item.cost : 0), 0), 0);
+            const totalPlacesCount = schedule.reduce((sum, d) => sum + d.slots.filter(s => s.item && s.type !== 'hotel').length, 0);
+            const convertedTotal = convertCurrency(totalCost, selectedCity.currency, homeCurrency);
+
+            const filteredPlaces = placeList
+                .filter(p => categoryFilter === 'all' || p.category === categoryFilter)
+                .filter(p => !placeSearch.trim() || p.name.toLowerCase().includes(placeSearch.trim().toLowerCase()));
+
+            return (
+                <div>
+                    <nav className="navbar">
+                        <div className="logo" onClick={() => setView('home')}>
+                            ✈️ Travlli <span className="logo-badge">PRO</span>
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                            1초 만에 완성되는 실패 없는 AI 자유여행
+                        </div>
+                    </nav>
+
+                    <div className="container">
+                        {/* 1. 홈 뷰 */}
+                        {view === 'home' && (
+                            <div>
+                                <div className="hero">
+                                    <h1>어디로 떠나시나요?</h1>
+                                    <p>AI가 동선부터 현지 예산까지 최적의 자유여행을 설계해드립니다.</p>
+
+                                    <div className="hero-search-box">
+                                        <span className="hero-search-icon">🔍</span>
+                                        <input
+                                            type="text"
+                                            className="hero-search-input"
+                                            placeholder="도시 또는 국가 검색 (예: 도쿄, 오사카)..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                        />
+                                        {searchQuery && (
+                                            <div className="search-results-dropdown">
+                                                {CITIES_MASTER.filter(c => c.name.includes(searchQuery)).map(city => (
+                                                    <div key={city.id} className="search-item" onClick={() => startSetup(city)}>
+                                                        <span>{city.emoji} {city.name} ({city.country})</span>
+                                                        <span style={{ fontSize: '0.8rem', color: 'var(--coral)', fontWeight: 700 }}>일정 짜기 ➔</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <h2 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '16px' }}>🔥 인기 여행지 선택</h2>
+                                <div className="grid-options">
+                                    {CITIES_MASTER.map(city => (
+                                        <div key={city.id} className="option-card" onClick={() => startSetup(city)}>
+                                            <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>{city.emoji}</div>
+                                            <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>{city.name}</div>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-sub)', marginTop: '4px' }}>{city.country}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 2. 셋업 위저드 뷰 */}
+                        {view === 'setup' && (
+                            <div className="setup-card">
+                                {step === 1 && (
+                                    <div>
+                                        <div className="step-badge">STEP 1 / 3</div>
+                                        <h2 className="setup-title">{selectedCity.name} 여행 기간을 선택해주세요</h2>
+                                        <p className="setup-sub">빠른 선택 또는 직접 입력으로 원하는 기간을 정할 수 있습니다.</p>
+                                        <div className="grid-options">
+                                            {[2, 3, 4, 5, 7, 10].map(days => (
+                                                <div
+                                                    key={days}
+                                                    className={`option-card ${durationDays === days ? 'active' : ''}`}
+                                                    onClick={() => setDurationDays(days)}
+                                                >
+                                                    <div style={{ fontSize: '1.3rem', fontWeight: 900 }}>{days - 1}박 {days}일</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="custom-days-row">
+                                            <span className="custom-days-label">직접 입력</span>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="30"
+                                                value={durationDays}
+                                                onChange={(e) => setDurationDays(Math.min(30, Math.max(1, Number(e.target.value) || 1)))}
+                                            />
+                                            <span style={{ fontWeight: 700 }}>{Math.max(0, durationDays - 1)}박 {durationDays}일</span>
+                                        </div>
+                                        <button className="btn-action" onClick={() => setStep(2)}>다음 단계로 ➔</button>
+                                    </div>
+                                )}
+
+                                {step === 2 && (
+                                    <div>
+                                        <div className="step-badge">STEP 2 / 3</div>
+                                        <h2 className="setup-title">여행자의 국적(통화)을 선택해주세요</h2>
+                                        <p className="setup-sub">현지 경비를 선택하신 통화로 환산하여 보여드립니다.</p>
+                                        <div className="grid-options">
+                                            {Object.entries(CURRENCY_META).map(([code, meta]) => (
+                                                <div
+                                                    key={code}
+                                                    className={`option-card ${homeCurrency === code ? 'active' : ''}`}
+                                                    onClick={() => setHomeCurrency(code)}
+                                                >
+                                                    <div style={{ fontSize: '1rem', fontWeight: 800 }}>{meta.label}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <button className="btn-secondary" onClick={() => setStep(1)}>◀ 이전 단계</button>
+                                        <button className="btn-action" onClick={() => setStep(3)}>다음 단계로 ➔</button>
+                                    </div>
+                                )}
+
+                                {step === 3 && (
+                                    <div>
+                                        <div className="step-badge">STEP 3 / 3</div>
+                                        <h2 className="setup-title">여행 설정을 완료했습니다!</h2>
+                                        <p className="setup-sub">
+                                            AI 동선 엔진이 {selectedCity.name} {durationDays - 1}박 {durationDays}일 플래너를 준비합니다.<br />
+                                            경비는 {CURRENCY_META[homeCurrency].label} 기준으로 환산되어 표시됩니다.
+                                        </p>
+                                        <button className="btn-secondary" onClick={() => setStep(2)}>◀ 이전 단계</button>
+                                        <button className="btn-action" onClick={finishSetup}>스마트 플래너 생성하기 🎉</button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* 3. 플래너 메인 뷰 */}
+                        {view === 'planner' && (
+                            <div>
+                                {/* 실시간 5대 고민 안심 브리핑 카드 */}
+                                <div className="hero-briefing">
+                                    <div className="briefing-header">
+                                        <div className="briefing-title">
+                                            <h1>{selectedCity.name} {durationDays - 1}박 {durationDays}일 스마트 브리핑</h1>
+                                            <p>장소를 변경할 때마다 이동시간과 예상 비용이 실시간으로 재계산됩니다.</p>
+                                        </div>
+                                        <div>
+                                            <select className="currency-select" value={homeCurrency} onChange={(e) => setHomeCurrency(e.target.value)}>
+                                                {Object.entries(CURRENCY_META).map(([code, meta]) => (
+                                                    <option key={code} value={code}>{meta.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="briefing-grid">
+                                        <div className="briefing-card">
+                                            <div className="briefing-label">🏨 추천 거점 숙소</div>
+                                            <div className="briefing-value" style={{ fontSize: '1.05rem' }}>{selectedCity.hub}</div>
+                                            <a href={buildHotelUrl(selectedCity.agodaCity)} target="_blank" rel="noopener noreferrer" className="btn-cta-hotel">
+                                                추천 최저가 숙소 보기 ➔
+                                            </a>
+                                        </div>
+                                        <div className="briefing-card">
+                                            <div className="briefing-label">💰 총 예상 경비 ({homeCurrency})</div>
+                                            <div className="briefing-value">{formatMoney(convertedTotal, homeCurrency)}</div>
+                                            <div className="briefing-subvalue">현지통화 {formatMoney(totalCost, selectedCity.currency)}</div>
+                                        </div>
+                                        <div className="briefing-card">
+                                            <div className="briefing-label">📍 배치된 총 장소</div>
+                                            <div className="briefing-value">{totalPlacesCount} 개</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 플래너 메인 레이아웃 */}
+                                <div className="planner-layout">
+                                    {/* 사이드바: 추천 장소 & 추가 */}
+                                    <div className="sidebar">
+                                        <div className="section-title">🔍 장소 선택 및 추가</div>
+
+                                        <input
+                                            type="text"
+                                            className="place-search-input"
+                                            placeholder="관광지, 맛집 이름으로 검색..."
+                                            value={placeSearch}
+                                            onChange={(e) => setPlaceSearch(e.target.value)}
+                                        />
+
+                                        <div className="category-tabs">
+                                            {[
+                                                { id: 'all', label: '전체' },
+                                                { id: 'spot', label: '📍 관광지/어트랙션' },
+                                                { id: 'food', label: '🍽️ 맛집' }
+                                            ].map(cat => (
+                                                <button
+                                                    key={cat.id}
+                                                    className={`btn-tab ${categoryFilter === cat.id ? 'active' : ''}`}
+                                                    onClick={() => setCategoryFilter(cat.id)}
+                                                >
+                                                    {cat.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-sub)', marginBottom: '12px' }}>
+                                            💡 PC: 드래그 앤 드롭 / 모바일: 클릭 후 슬롯 터치 · 배치된 일정끼리도 클릭/드래그로 순서를 바꿀 수 있어요
+                                        </div>
+
+                                        {filteredPlaces.map(place => (
+                                            <div
+                                                key={place.id}
+                                                className={`place-card-sm ${draggedItem?.id === place.id ? 'selected-tap' : ''}`}
+                                                draggable
+                                                onDragStart={() => { setDraggedItem(place); setDraggedSlotRef(null); }}
+                                                onClick={() => setDraggedItem(draggedItem?.id === place.id ? null : place)}
+                                            >
+                                                <PlaceImage title={place.name} category={place.category} className="place-photo place-photo-sm" />
+                                                <div style={{ fontWeight: 800, fontSize: '0.92rem' }}>{place.name}</div>
+                                                <div style={{ fontSize: '0.78rem', color: 'var(--text-sub)', marginTop: '4px' }}>
+                                                    ⏱️ {place.duration}분 | {formatMoney(place.cost, selectedCity.currency)}
+                                                </div>
+                                                {place.tip && (
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--coral)', marginTop: '4px' }}>
+                                                        💡 {place.tip}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+
+                                        {filteredPlaces.length === 0 && (
+                                            <div style={{ fontSize: '0.82rem', color: 'var(--text-sub)', textAlign: 'center', padding: '16px 0' }}>
+                                                검색 결과가 없습니다. 아래에서 직접 추가해보세요.
+                                            </div>
+                                        )}
+
+                                        {!showAddForm ? (
+                                            <button className="btn-add-custom" onClick={() => setShowAddForm(true)}>+ 직접 장소 추가하기</button>
+                                        ) : (
+                                            <div className="custom-place-form">
+                                                <input
+                                                    placeholder="장소명"
+                                                    value={newPlaceDraft.name}
+                                                    onChange={(e) => setNewPlaceDraft({ ...newPlaceDraft, name: e.target.value })}
+                                                />
+                                                <div className="custom-place-form-row">
+                                                    <select
+                                                        value={newPlaceDraft.category}
+                                                        onChange={(e) => setNewPlaceDraft({ ...newPlaceDraft, category: e.target.value })}
+                                                    >
+                                                        <option value="spot">📍 관광지</option>
+                                                        <option value="food">🍽️ 맛집</option>
+                                                    </select>
+                                                    <input
+                                                        type="number"
+                                                        placeholder="소요시간(분)"
+                                                        value={newPlaceDraft.duration}
+                                                        onChange={(e) => setNewPlaceDraft({ ...newPlaceDraft, duration: e.target.value })}
+                                                    />
+                                                </div>
+                                                <input
+                                                    type="number"
+                                                    placeholder={`예상 비용 (${selectedCity.currency})`}
+                                                    value={newPlaceDraft.cost}
+                                                    onChange={(e) => setNewPlaceDraft({ ...newPlaceDraft, cost: e.target.value })}
+                                                />
+                                                <input
+                                                    placeholder="한줄 팁 (선택)"
+                                                    value={newPlaceDraft.tip}
+                                                    onChange={(e) => setNewPlaceDraft({ ...newPlaceDraft, tip: e.target.value })}
+                                                />
+                                                <button className="btn-form-submit" onClick={submitCustomPlace}>추가하기</button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* 메인 일자별 타임라인 Area */}
+                                    <div className="timeline-container" id="printable-area">
+                                        {schedule.map((dayData, dayIdx) => {
+                                            const routeItems = dayData.slots.filter(s => s.type !== 'hotel' && s.item).map(s => s.item);
+                                            const spotCount = dayData.slots.filter(s => s.item && s.item.category === 'spot').length;
+
+                                            return (
+                                                <div key={dayData.day} style={{ marginBottom: '36px' }}>
+                                                    <div className="day-header">
+                                                        <div className="day-title">DAY {dayData.day} 일정</div>
+                                                        <button
+                                                            className="btn-optimize"
+                                                            onClick={() => handleOptimize(dayIdx)}
+                                                            disabled={spotCount < 2}
+                                                            title={spotCount < 2 ? '관광지를 2곳 이상 배치하면 활성화됩니다' : '관광지 방문 순서를 최단 동선으로 재배열합니다'}
+                                                        >
+                                                            🧭 동선 최적화 실행
+                                                        </button>
+                                                    </div>
+
+                                                    {/* 동선 요약 실지도 */}
+                                                    {routeItems.length > 0 && (
+                                                        <RouteMap items={routeItems} dayId={dayData.day} />
+                                                    )}
+
+                                                    {dayData.slots.map((slot, slotIdx) => {
+                                                        const nextSlot = dayData.slots[slotIdx + 1];
+                                                        const transit = (slot.item && slot.type !== 'hotel' && nextSlot && nextSlot.item && nextSlot.type !== 'hotel')
+                                                            ? calculateTransit(slot.item, nextSlot.item) : null;
+                                                        const isPicked = draggedSlotRef && draggedSlotRef.dayIdx === dayIdx && draggedSlotRef.slotIdx === slotIdx;
+
+                                                        return (
+                                                            <React.Fragment key={slotIdx}>
+                                                                <div
+                                                                    className={`slot-card ${slot.item ? 'has-item' : ''} ${isPicked ? 'slot-picked' : ''}`}
+                                                                    draggable={!!slot.item && slot.type !== 'hotel'}
+                                                                    onDragStart={() => { if (slot.type !== 'hotel') { setDraggedSlotRef({ dayIdx, slotIdx }); setDraggedItem(null); } }}
+                                                                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }}
+                                                                    onDragLeave={(e) => e.currentTarget.classList.remove('drag-over')}
+                                                                    onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); handleSlotDrop(dayIdx, slotIdx); }}
+                                                                    onClick={() => handleSlotClick(dayIdx, slotIdx, slot)}
+                                                                >
+                                                                    <div className="slot-meta">
+                                                                        <span className="slot-time-label">
+                                                                            ⏰
+                                                                            <input
+                                                                                className="inline-input time-input"
+                                                                                value={slot.time}
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                onChange={(e) => updateSlotField(dayIdx, slotIdx, 'time', e.target.value)}
+                                                                            />
+                                                                            <input
+                                                                                className="inline-input label-input"
+                                                                                value={slot.label}
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                onChange={(e) => updateSlotField(dayIdx, slotIdx, 'label', e.target.value)}
+                                                                            />
+                                                                        </span>
+                                                                        <div className="slot-meta-actions">
+                                                                            {slot.item && slot.type !== 'hotel' && (
+                                                                                <span className="stay-duration">권장 체류: {slot.item.duration}분</span>
+                                                                            )}
+                                                                            {slot.item && slot.type !== 'hotel' && (
+                                                                                <button
+                                                                                    className="btn-icon-action"
+                                                                                    onClick={(e) => { e.stopPropagation(); handleRemoveSlot(dayIdx, slotIdx); }}
+                                                                                    title="이 항목 비우기"
+                                                                                >
+                                                                                    ✕
+                                                                                </button>
+                                                                            )}
+                                                                            {!slot.fixed && (
+                                                                                <button
+                                                                                    className="btn-icon-action"
+                                                                                    onClick={(e) => { e.stopPropagation(); removeSlotRow(dayIdx, slotIdx); }}
+                                                                                    title="이 일정 칸 삭제"
+                                                                                >
+                                                                                    🗑
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {slot.type === 'hotel' ? (
+                                                                        <div className="hotel-slot" onClick={(e) => e.stopPropagation()}>
+                                                                            <input
+                                                                                className="hotel-name-input"
+                                                                                placeholder="🏨 예약한 숙소명을 입력하세요"
+                                                                                value={slot.item?.name || ''}
+                                                                                onChange={(e) => updateSlotField(dayIdx, slotIdx, 'item', { ...(slot.item || { cost: 0 }), name: e.target.value, category: 'hotel' })}
+                                                                            />
+                                                                            <div className="hotel-cost-row">
+                                                                                <span>1박 요금</span>
+                                                                                <input
+                                                                                    type="number"
+                                                                                    className="hotel-cost-input"
+                                                                                    value={slot.item?.cost || 0}
+                                                                                    onChange={(e) => updateSlotField(dayIdx, slotIdx, 'item', { ...(slot.item || { name: '' }), cost: Number(e.target.value) || 0, category: 'hotel' })}
+                                                                                />
+                                                                                <span>{selectedCity.currency}</span>
+                                                                            </div>
+                                                                            {slot.item?.name && <PlaceImage title={slot.item.name} category="hotel" className="place-photo" />}
+                                                                            <a href={buildHotelUrl(selectedCity.agodaCity)} target="_blank" rel="noopener noreferrer" className="affiliate-link" onClick={(e) => e.stopPropagation()}>
+                                                                                🏨 아고다에서 숙소 재확인/예약하기
+                                                                            </a>
+                                                                        </div>
+                                                                    ) : slot.item ? (
+                                                                        <div>
+                                                                            <PlaceImage title={slot.item.name} category={slot.type} className="place-photo" />
+                                                                            <div className="slot-name">{slot.item.name}</div>
+                                                                            <div className="slot-cost">
+                                                                                예상 비용: {formatMoney(slot.item.cost, selectedCity.currency)}
+                                                                                <span className="slot-cost-converted"> (약 {formatMoney(convertCurrency(slot.item.cost, selectedCity.currency, homeCurrency), homeCurrency)})</span>
+                                                                            </div>
+
+                                                                            {slot.item.category === 'spot' && slot.item.highlights && slot.item.highlights.length > 0 && (
+                                                                                <ul className="highlight-list">
+                                                                                    {slot.item.highlights.map((h, i) => <li key={i}>✔ {h}</li>)}
+                                                                                </ul>
+                                                                            )}
+
+                                                                            {slot.item.category === 'food' && slot.item.menu && slot.item.menu.length > 0 && (
+                                                                                <div className="menu-list">
+                                                                                    <div className="menu-list-title">🍴 대표 메뉴</div>
+                                                                                    <div className="menu-chips">
+                                                                                        {slot.item.menu.map((m, i) => <span key={i} className="menu-chip">{m}</span>)}
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+
+                                                                            {slot.item.tip && <div className="slot-tip">💡 {slot.item.tip}</div>}
+
+                                                                            {slot.item.bookable && (
+                                                                                <a href={buildTicketUrl(slot.item.name)} target="_blank" rel="noopener noreferrer" className="affiliate-link" onClick={(e) => e.stopPropagation()}>
+                                                                                    🎟️ Klook에서 최저가 티켓 확인하기
+                                                                                </a>
+                                                                            )}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="empty-slot-hint">
+                                                                            {draggedItem
+                                                                                ? '👇 클릭/드롭하여 장소 배치하기'
+                                                                                : draggedSlotRef
+                                                                                    ? '👇 클릭하여 이 위치와 순서 바꾸기'
+                                                                                    : '+ 장소를 드래그/클릭하여 추가하거나, 배치된 다른 일정을 클릭해 순서를 바꿔보세요'}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* 이동 시간 배지 */}
+                                                                {transit && (
+                                                                    <div className="transit-badge">
+                                                                        <div className="transit-line"></div>
+                                                                        <span>{transit.mode} 약 {transit.mins}분 이동 ({transit.km.toFixed(1)}km)</span>
+                                                                        <div className="transit-line"></div>
+                                                                    </div>
+                                                                )}
+                                                            </React.Fragment>
+                                                        );
+                                                    })}
+
+                                                    <button className="btn-add-slot" onClick={() => addSlot(dayIdx)}>+ 일정 칸 추가</button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* 하단 고정 요약 및 Export 패널 */}
+                                <div className="summary-panel">
+                                    <div style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '8px' }}>📥 여행 완성 및 내보내기</div>
+                                    <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                                        총 {totalPlacesCount}개 장소 배치됨 | 예산: {formatMoney(convertedTotal, homeCurrency)} ({formatMoney(totalCost, selectedCity.currency)})
+                                    </div>
+                                    <button className="btn-download" onClick={handlePDFExport} disabled={isGeneratingPDF}>
+                                        {isGeneratingPDF ? '⌛ PDF 생성 중...' : '📄 일정표 PDF 다운로드 ($1.99)'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
