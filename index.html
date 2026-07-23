@@ -68,6 +68,10 @@
         .custom-days-row input[type="number"] { width: 80px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); font-size: 1.1rem; font-weight: 800; text-align: center; }
         .custom-days-label { font-weight: 700; font-size: 0.92rem; color: var(--text-sub); }
 
+        .location-detect-box { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; font-size: 0.85rem; color: var(--text-sub); margin-bottom: 24px; line-height: 1.5; }
+
+        .package-notice { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; font-size: 0.85rem; font-weight: 600; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px; }
+
         /* Briefing Section */
         .hero-briefing { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%); color: white; padding: 28px; border-radius: 20px; box-shadow: 0 10px 30px rgba(15,23,42,0.15); margin-bottom: 24px; }
         .briefing-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
@@ -84,8 +88,8 @@
         .currency-select option { color: var(--text-main); }
 
         /* Main Planner Layout */
-        .planner-layout { display: grid; grid-template-columns: 360px 1fr; gap: 24px; }
-        .sidebar { background: var(--card-bg); padding: 24px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.03); height: fit-content; max-height: 85vh; overflow-y: auto; }
+        .planner-layout { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
+        .sidebar { background: var(--card-bg); padding: 24px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.03); height: fit-content; max-height: calc(100vh - 112px); overflow-y: auto; position: sticky; top: 88px; }
         .section-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
 
         .place-search-input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.85rem; margin-bottom: 12px; outline: none; }
@@ -117,6 +121,8 @@
         .slot-card.has-item { border-style: solid; border-color: var(--border); background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.02); cursor: default; }
         .slot-card.drag-over { border-color: var(--coral); background: #fff0f1; }
         .slot-card.slot-picked { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(245,158,11,0.25); }
+
+        .slot-order-badge { position: absolute; left: -10px; top: -10px; background: var(--navy); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 2; }
 
         .slot-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--text-sub); font-weight: 600; margin-bottom: 6px; gap: 8px; flex-wrap: wrap; }
         .slot-time-label { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
@@ -166,14 +172,14 @@
         .route-marker-num { background: var(--navy); color: white; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
         .route-map-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-sub); font-size: 0.85rem; }
 
-        .summary-panel { position: fixed; bottom: 20px; right: 20px; background: var(--navy); color: white; padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); min-width: 280px; z-index: 90; }
-        .btn-download { width: 100%; background: var(--coral); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 800; margin-top: 12px; cursor: pointer; }
+        .summary-panel { background: var(--navy); color: white; padding: 10px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.15); min-width: 140px; max-width: 340px; margin: 32px auto 0; text-align: center; }
+        .btn-download { width: 100%; background: var(--coral); color: white; border: none; padding: 6px; border-radius: 5px; font-weight: 800; font-size: 0.5rem; margin-top: 6px; cursor: pointer; }
         .btn-download:disabled { background: #64748b; cursor: not-allowed; }
 
         /* Responsive */
         @media (max-width: 900px) {
             .planner-layout { grid-template-columns: 1fr; }
-            .summary-panel { position: static; margin-top: 24px; min-width: 100%; }
+            .sidebar { position: static; max-height: none; }
         }
     </style>
 </head>
@@ -186,13 +192,13 @@
         // 💡 실전 파트너 어필리에이트 코드 (발급 후 추가)
         const AFFILIATE_CONFIG = {
             KLOOK_AID: "",
-            AGODA_CID: ""
+            BOOKING_AID: ""
         };
 
         // 데이터베이스 (단일 소스 원칙)
         const CITIES_MASTER = [
-            { id: 'tokyo', name: '도쿄', country: '일본', emoji: '🇯🇵', hub: '도쿄역 / 긴자 구역', agodaCity: 'tokyo-jp', skyscannerCode: 'tyoa', currency: 'JPY' },
-            { id: 'osaka', name: '오사카', country: '일본', emoji: '🇯🇵', hub: '난바 / 우메다 구역', agodaCity: 'osaka-jp', skyscannerCode: 'osaa', currency: 'JPY' }
+            { id: 'tokyo', name: '도쿄', country: '일본', emoji: '🇯🇵', hub: '도쿄역 / 긴자 구역', skyscannerCode: 'tyoa', currency: 'JPY' },
+            { id: 'osaka', name: '오사카', country: '일본', emoji: '🇯🇵', hub: '난바 / 우메다 구역', skyscannerCode: 'osaa', currency: 'JPY' }
         ];
 
         // 관광지/맛집 DB - 즐길거리 포인트(highlights)와 대표메뉴(menu) 정보를 포함
@@ -242,9 +248,10 @@
             return `https://www.klook.com/ko/search/result/?query=${q}${aid}`;
         }
 
-        function buildHotelUrl(agodaCity) {
-            const cid = AFFILIATE_CONFIG.AGODA_CID ? `?cid=${AFFILIATE_CONFIG.AGODA_CID}` : '';
-            return `https://www.agoda.com/ko-kr/city/${agodaCity}.html${cid}`;
+        function buildHotelUrl(query) {
+            const q = encodeURIComponent(query);
+            const aid = AFFILIATE_CONFIG.BOOKING_AID ? `&aid=${AFFILIATE_CONFIG.BOOKING_AID}` : '';
+            return `https://www.booking.com/searchresults.html?ss=${q}${aid}`;
         }
 
         // 통화 변환 (USD 피벗 방식 - 실제 서비스 적용시 실시간 환율 API로 교체 권장)
@@ -454,6 +461,7 @@
             const [selectedCity, setSelectedCity] = useState(CITIES_MASTER[0]);
             const [durationDays, setDurationDays] = useState(3);
             const [homeCurrency, setHomeCurrency] = useState('KRW');
+            const [locationInfo, setLocationInfo] = useState({ status: 'detecting', countryName: '' });
             const [categoryFilter, setCategoryFilter] = useState('all');
             const [searchQuery, setSearchQuery] = useState('');
             const [placeSearch, setPlaceSearch] = useState('');
@@ -474,20 +482,45 @@
                 }
             }, [selectedCity]);
 
-            // 일정 초기 생성 (각 Day 마지막에 숙소 슬롯 자동 포함)
+            // 유저의 위치를 자동 감지해 통화를 설정 (IP 기반, 별도 권한 요청 불필요)
+            useEffect(() => {
+                let cancelled = false;
+                fetch('https://ipapi.co/json/')
+                    .then(res => (res.ok ? res.json() : Promise.reject(res)))
+                    .then(data => {
+                        if (cancelled) return;
+                        const code = data && data.currency;
+                        if (code && CURRENCY_META[code]) {
+                            setHomeCurrency(code);
+                            setLocationInfo({ status: 'done', countryName: data.country_name || code });
+                        } else {
+                            setLocationInfo({ status: 'unsupported', countryName: data?.country_name || '' });
+                        }
+                    })
+                    .catch(() => {
+                        if (!cancelled) setLocationInfo({ status: 'failed', countryName: '' });
+                    });
+                return () => { cancelled = true; };
+            }, []);
+
+            // 일정 초기 생성 - 여행사 인기 패키지 프로그램처럼 관광지/맛집을 미리 채워서 제안하고,
+            // 이후 사용자가 검색/드래그/스왑으로 자유롭게 수정할 수 있도록 시작점을 제공한다.
             const initSchedule = (days) => {
+                const dbSpots = (PLACES_DB[selectedCity.id] || []).filter(p => p.category === 'spot');
+                const dbFoods = (PLACES_DB[selectedCity.id] || []).filter(p => p.category === 'food');
+                let spotCursor = 0;
+                let foodCursor = 0;
                 const init = [];
                 for (let i = 1; i <= days; i++) {
-                    init.push({
-                        day: i,
-                        slots: [
-                            { label: '오전 관광', time: '09:30', type: 'spot', item: null },
-                            { label: '점심 식사', time: '12:30', type: 'food', item: null },
-                            { label: '오후 관광', time: '14:30', type: 'spot', item: null },
-                            { label: '저녁 식사', time: '18:30', type: 'food', item: null },
-                            { label: '숙소', time: '21:00', type: 'hotel', item: null, fixed: true }
-                        ]
-                    });
+                    let slots = [
+                        { label: '오전 관광', time: '09:30', type: 'spot', item: dbSpots[spotCursor++] || null },
+                        { label: '점심 식사', time: '12:30', type: 'food', item: dbFoods[foodCursor++] || null },
+                        { label: '오후 관광', time: '14:30', type: 'spot', item: dbSpots[spotCursor++] || null },
+                        { label: '저녁 식사', time: '18:30', type: 'food', item: dbFoods[foodCursor++] || null },
+                        { label: '숙소', time: '21:00', type: 'hotel', item: null, fixed: true }
+                    ];
+                    slots = optimizeDaySlots(slots);
+                    init.push({ day: i, slots });
                 }
                 setSchedule(init);
             };
@@ -697,7 +730,7 @@
                             <div className="setup-card">
                                 {step === 1 && (
                                     <div>
-                                        <div className="step-badge">STEP 1 / 3</div>
+                                        <div className="step-badge">STEP 1 / 2</div>
                                         <h2 className="setup-title">{selectedCity.name} 여행 기간을 선택해주세요</h2>
                                         <p className="setup-sub">빠른 선택 또는 직접 입력으로 원하는 기간을 정할 수 있습니다.</p>
                                         <div className="grid-options">
@@ -728,34 +761,19 @@
 
                                 {step === 2 && (
                                     <div>
-                                        <div className="step-badge">STEP 2 / 3</div>
-                                        <h2 className="setup-title">여행자의 국적(통화)을 선택해주세요</h2>
-                                        <p className="setup-sub">현지 경비를 선택하신 통화로 환산하여 보여드립니다.</p>
-                                        <div className="grid-options">
-                                            {Object.entries(CURRENCY_META).map(([code, meta]) => (
-                                                <div
-                                                    key={code}
-                                                    className={`option-card ${homeCurrency === code ? 'active' : ''}`}
-                                                    onClick={() => setHomeCurrency(code)}
-                                                >
-                                                    <div style={{ fontSize: '1rem', fontWeight: 800 }}>{meta.label}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <button className="btn-secondary" onClick={() => setStep(1)}>◀ 이전 단계</button>
-                                        <button className="btn-action" onClick={() => setStep(3)}>다음 단계로 ➔</button>
-                                    </div>
-                                )}
-
-                                {step === 3 && (
-                                    <div>
-                                        <div className="step-badge">STEP 3 / 3</div>
+                                        <div className="step-badge">STEP 2 / 2</div>
                                         <h2 className="setup-title">여행 설정을 완료했습니다!</h2>
                                         <p className="setup-sub">
-                                            AI 동선 엔진이 {selectedCity.name} {durationDays - 1}박 {durationDays}일 플래너를 준비합니다.<br />
-                                            경비는 {CURRENCY_META[homeCurrency].label} 기준으로 환산되어 표시됩니다.
+                                            AI가 {selectedCity.name} {durationDays - 1}박 {durationDays}일 인기 여행 프로그램을 먼저 구성해드려요.<br />
+                                            이후 마음에 드는 대로 자유롭게 일정을 수정할 수 있습니다.
                                         </p>
-                                        <button className="btn-secondary" onClick={() => setStep(2)}>◀ 이전 단계</button>
+                                        <div className="location-detect-box">
+                                            {locationInfo.status === 'detecting' && '🌍 현재 위치를 기반으로 통화를 자동 감지하는 중...'}
+                                            {locationInfo.status === 'done' && `🌍 위치 자동 감지: ${locationInfo.countryName} 기준 ${CURRENCY_META[homeCurrency].label} 로 경비를 환산합니다.`}
+                                            {locationInfo.status === 'unsupported' && `🌍 ${locationInfo.countryName || '현재 위치'}의 통화는 아직 지원하지 않아 기본값(${CURRENCY_META[homeCurrency].label})으로 표시돼요. 플래너 화면에서 언제든 변경할 수 있어요.`}
+                                            {locationInfo.status === 'failed' && `🌍 위치를 자동으로 감지하지 못해 기본값(${CURRENCY_META[homeCurrency].label})을 적용했어요. 플래너 화면 상단에서 직접 변경할 수 있어요.`}
+                                        </div>
+                                        <button className="btn-secondary" onClick={() => setStep(1)}>◀ 이전 단계</button>
                                         <button className="btn-action" onClick={finishSetup}>스마트 플래너 생성하기 🎉</button>
                                     </div>
                                 )}
@@ -785,8 +803,8 @@
                                         <div className="briefing-card">
                                             <div className="briefing-label">🏨 추천 거점 숙소</div>
                                             <div className="briefing-value" style={{ fontSize: '1.05rem' }}>{selectedCity.hub}</div>
-                                            <a href={buildHotelUrl(selectedCity.agodaCity)} target="_blank" rel="noopener noreferrer" className="btn-cta-hotel">
-                                                추천 최저가 숙소 보기 ➔
+                                            <a href={buildHotelUrl(`${selectedCity.name} ${selectedCity.hub}`)} target="_blank" rel="noopener noreferrer" className="btn-cta-hotel">
+                                                부킹닷컴에서 최저가 숙소 보기 ➔
                                             </a>
                                         </div>
                                         <div className="briefing-card">
@@ -904,9 +922,17 @@
 
                                     {/* 메인 일자별 타임라인 Area */}
                                     <div className="timeline-container" id="printable-area">
+                                        <div className="package-notice">
+                                            🧳 국내 여행사 인기 프로그램을 참고해 기본 일정을 먼저 채워드렸어요. 마음에 들지 않는 일정은 검색·드래그·스왑으로 자유롭게 바꿔보세요!
+                                        </div>
                                         {schedule.map((dayData, dayIdx) => {
                                             const routeItems = dayData.slots.filter(s => s.type !== 'hotel' && s.item).map(s => s.item);
                                             const spotCount = dayData.slots.filter(s => s.item && s.item.category === 'spot').length;
+                                            let orderCounter = 0;
+                                            const orderNumbers = dayData.slots.map(s => {
+                                                if (s.type !== 'hotel' && s.item) { orderCounter += 1; return orderCounter; }
+                                                return null;
+                                            });
 
                                             return (
                                                 <div key={dayData.day} style={{ marginBottom: '36px' }}>
@@ -944,6 +970,9 @@
                                                                     onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); handleSlotDrop(dayIdx, slotIdx); }}
                                                                     onClick={() => handleSlotClick(dayIdx, slotIdx, slot)}
                                                                 >
+                                                                    {orderNumbers[slotIdx] && (
+                                                                        <div className="slot-order-badge" title="지도상의 방문 순서 번호">{orderNumbers[slotIdx]}</div>
+                                                                    )}
                                                                     <div className="slot-meta">
                                                                         <span className="slot-time-label">
                                                                             ⏰
@@ -1004,8 +1033,8 @@
                                                                                 <span>{selectedCity.currency}</span>
                                                                             </div>
                                                                             {slot.item?.name && <PlaceImage title={slot.item.name} category="hotel" className="place-photo" />}
-                                                                            <a href={buildHotelUrl(selectedCity.agodaCity)} target="_blank" rel="noopener noreferrer" className="affiliate-link" onClick={(e) => e.stopPropagation()}>
-                                                                                🏨 아고다에서 숙소 재확인/예약하기
+                                                                            <a href={buildHotelUrl(slot.item?.name ? slot.item.name : `${selectedCity.name} ${selectedCity.hub}`)} target="_blank" rel="noopener noreferrer" className="affiliate-link" onClick={(e) => e.stopPropagation()}>
+                                                                                🏨 부킹닷컴에서 숙소 재확인/예약하기
                                                                             </a>
                                                                         </div>
                                                                     ) : slot.item ? (
@@ -1072,8 +1101,8 @@
 
                                 {/* 하단 고정 요약 및 Export 패널 */}
                                 <div className="summary-panel">
-                                    <div style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '8px' }}>📥 여행 완성 및 내보내기</div>
-                                    <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                                    <div style={{ fontWeight: 800, fontSize: '0.55rem', marginBottom: '4px' }}>📥 여행 완성 및 내보내기</div>
+                                    <div style={{ fontSize: '0.425rem', color: '#94a3b8' }}>
                                         총 {totalPlacesCount}개 장소 배치됨 | 예산: {formatMoney(convertedTotal, homeCurrency)} ({formatMoney(totalCost, selectedCity.currency)})
                                     </div>
                                     <button className="btn-download" onClick={handlePDFExport} disabled={isGeneratingPDF}>
