@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# 공유 링크(?plan=)는 개인 일정이라 색인하지 않는다
+Disallow: /*?plan=
+
+Sitemap: https://pinkclab.com/sitemap.xml

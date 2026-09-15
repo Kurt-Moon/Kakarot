@@ -1,0 +1,29 @@
+{
+  "name": "pingclab",
+  "version": "1.0.0",
+  "description": "PingClab — 일본 자유여행 플래너",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test/smoke.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kurt-Moon/Kakarot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Kurt-Moon/Kakarot/issues"
+  },
+  "homepage": "https://github.com/Kurt-Moon/Kakarot#readme",
+  "dependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "private": true,
+  "devDependencies": {
+    "playwright": "^1.63.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

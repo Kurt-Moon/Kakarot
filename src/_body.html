@@ -1,0 +1,161 @@
+</head>
+<body>
+<!--
+  ⚠️ #root 안의 정적 마크업은 "React 홈 화면과 동일한 내용"이어야 한다.
+     - 크롤러가 JS 실행 없이도 본문을 읽을 수 있게 하고(SEO)
+     - 첫 화면(LCP)이 JS 없이 즉시 그려지게 한다(성능)
+     React 가 마운트되면 동일한 내용으로 교체된다.
+     app.jsx 의 홈 화면 문구를 고치면 이 블록도 함께 고칠 것.
+-->
+<div id="root">
+  <nav class="home-nav">
+    <div class="nav-logo">Ping<span>Clab</span></div>
+    <div class="home-nav-links">
+      <a href="#how-to">이용방법</a>
+      <a href="#cities">도시 선택</a>
+      <a href="#about">서비스 소개</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-content" style="max-width:800px;margin:0 auto;position:relative;z-index:1">
+      <h1 class="hero-logo">Ping<span>Clab</span></h1>
+      <p class="hero-sub">동선·날씨·예산까지 — 나만의 완벽한 일본 여행을 만들어보세요 ✈️</p>
+      <div class="hero-search">
+        <span class="si">🔍</span>
+        <input type="text" placeholder="도시를 검색하세요 (도쿄, 오사카, 교토, 후쿠오카, 삿포로)" aria-label="도시 검색">
+      </div>
+    </div>
+  </section>
+
+  <section id="how-to" class="sec" style="background:#f8f9ff;padding-top:4rem;padding-bottom:4rem">
+    <div class="container">
+      <div class="sec-hd">
+        <h2 class="sec-title">🗺️ 이용방법</h2>
+        <p class="sec-sub">3단계로 완성하는 일본 여행 일정</p>
+      </div>
+      <div class="how-to-grid">
+        <div class="how-to-card"><div class="how-to-num">1</div><div class="how-to-icon">🏙️</div><h3 class="how-to-ttl">도시 선택</h3><p class="how-to-desc">도쿄·오사카·교토·후쿠오카·삿포로 중 여행할 도시를 고르세요</p></div>
+        <div class="how-to-card"><div class="how-to-num">2</div><div class="how-to-icon">📅</div><h3 class="how-to-ttl">기간·날짜 설정</h3><p class="how-to-desc">여행 일수와 출발일을 설정하면 복귀일이 자동 계산됩니다</p></div>
+        <div class="how-to-card"><div class="how-to-num">3</div><div class="how-to-icon">✨</div><h3 class="how-to-ttl">일정 자동 생성</h3><p class="how-to-desc">큐레이션된 장소들로 최적 동선 일정이 1초 만에 완성됩니다</p></div>
+        <div class="how-to-card"><div class="how-to-num">4</div><div class="how-to-icon">✏️</div><h3 class="how-to-ttl">편집·저장·공유</h3><p class="how-to-desc">드래그로 순서 변경, 장소 추가·삭제, 링크 공유까지 무료</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="cities" class="sec" style="padding-top:5rem">
+    <div class="container">
+      <div class="sec-hd">
+        <h2 class="sec-title">🇯🇵 일본 도시 선택</h2>
+        <p class="sec-sub">5개 도시 · 장소 큐레이션 포함 · 지도 동선 자동 생성</p>
+      </div>
+      <div class="city-grid">
+        <div class="city-card"><div class="badge-avail">✓ 지금 계획하기</div><img src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=75" alt="도쿄 여행" width="600" height="400" loading="lazy"><div class="city-card-body"><h3 class="city-card-name">🗼 도쿄</h3><p class="city-card-meta">일본 · 50개 장소 · 지도 동선 포함</p></div></div>
+        <div class="city-card"><div class="badge-avail">✓ 지금 계획하기</div><img src="https://images.unsplash.com/photo-1589308078059-be1415eab4c3?w=600&q=75" alt="오사카 여행" width="600" height="400" loading="lazy"><div class="city-card-body"><h3 class="city-card-name">🏯 오사카</h3><p class="city-card-meta">일본 · 30개 장소 · 지도 동선 포함</p></div></div>
+        <div class="city-card"><div class="badge-avail">✓ 지금 계획하기</div><img src="https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=600&q=75" alt="교토 여행" width="600" height="400" loading="lazy"><div class="city-card-body"><h3 class="city-card-name">⛩️ 교토</h3><p class="city-card-meta">일본 · 20개 장소 · 지도 동선 포함</p></div></div>
+        <div class="city-card"><div class="badge-avail">✓ 지금 계획하기</div><img src="https://images.unsplash.com/photo-1480796927426-f609979314bd?w=600&q=75" alt="후쿠오카 여행" width="600" height="400" loading="lazy"><div class="city-card-body"><h3 class="city-card-name">🍜 후쿠오카</h3><p class="city-card-meta">일본 · 17개 장소 · 지도 동선 포함</p></div></div>
+        <div class="city-card"><div class="badge-avail">✓ 지금 계획하기</div><img src="https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=600&q=75" alt="삿포로 여행" width="600" height="400" loading="lazy"><div class="city-card-body"><h3 class="city-card-name">⛄ 삿포로</h3><p class="city-card-meta">일본 · 17개 장소 · 지도 동선 포함</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec-white">
+    <div class="container">
+      <div class="sec-hd">
+        <h2 class="sec-title">🌏 다른 나라도 곧 오픈</h2>
+        <p class="sec-sub">도쿄 · 오사카 · 교토 · 후쿠오카 · 삿포로</p>
+      </div>
+      <div class="region-section">
+        <div class="region-label">일본</div>
+        <div class="chips"><div class="chip"><span>🇯🇵</span><span>일본</span><span class="chip-cnt">5개 도시</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="about" class="sec sec-white" style="padding-bottom:5rem">
+    <div class="container">
+      <div class="sec-hd">
+        <h2 class="sec-title">🦀 PingClab이란?</h2>
+        <p class="sec-sub">핑크랩이 일본 여행의 모든 고민을 해결합니다</p>
+      </div>
+      <div class="how-to-grid">
+        <div class="how-to-card"><div class="how-to-icon">📍</div><h3 class="how-to-ttl">Ping만 찍으세요</h3><p class="how-to-desc">가고 싶은 곳에 핑만 찍으면 동선·휴무·이동시간을 자동으로 최적화합니다</p></div>
+        <div class="how-to-card"><div class="how-to-icon">🗓️</div><h3 class="how-to-ttl">휴무 걱정 끝</h3><p class="how-to-desc">각 장소의 정기 휴무일을 DB로 관리해 일정 충돌을 사전 차단합니다</p></div>
+        <div class="how-to-card"><div class="how-to-icon">💴</div><h3 class="how-to-ttl">예산 한눈에</h3><p class="how-to-desc">숙박·교통·입장료를 자동 합산해 여행 전 예산을 쉽게 파악할 수 있어요</p></div>
+        <div class="how-to-card"><div class="how-to-icon">📱</div><h3 class="how-to-ttl">인스타 카드</h3><p class="how-to-desc">완성 일정을 인스타그램 캐러셀 카드로 바로 저장해 친구들과 공유하세요</p></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="error-display" style="display:none;min-height:100vh;align-items:center;justify-content:center;background:#1A2744;color:#fff;font-family:sans-serif;flex-direction:column;gap:1rem;padding:2rem;text-align:center;">
+  <div style="font-size:2rem;">⚠️</div>
+  <div style="font-size:1rem;font-weight:700;">로드 오류</div>
+  <div id="error-msg" style="font-size:.8rem;opacity:.7;max-width:400px;line-height:1.6;background:rgba(255,255,255,.1);padding:1rem;border-radius:.5rem;"></div>
+  <div style="font-size:.75rem;opacity:.5;">pinkclab.com에서 열면 정상 작동합니다</div>
+</div>
+
+<script>
+// 로드 에러 캐치
+// 캡처 단계(true)로 등록하면 <img>/<script> 의 리소스 로드 실패까지 잡혀
+// 지도·이미지 하나 못 불러온 것만으로 전체 화면이 에러로 덮인다.
+// 버블 단계로 등록해 "잡히지 않은 JS 예외"만 처리한다.
+window.addEventListener('error', function(e) {
+  if(e.target&&e.target!==window&&e.target.tagName)return;  // 리소스 로드 실패는 무시
+  var ed=document.getElementById('error-display');
+  if(!ed||ed.dataset.shown)return;
+  ed.dataset.shown='1';
+  document.getElementById('root').style.display='none';
+  ed.style.display='flex';
+  document.getElementById('error-msg').textContent=e.message||'알 수 없는 오류';
+});
+var _hideLoader=function(){};
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "@id": "https://pinkclab.com/#app",
+      "name": "PingClab",
+      "alternateName": "핑크랩 일본 여행 플래너",
+      "url": "https://pinkclab.com/",
+      "applicationCategory": "TravelApplication",
+      "operatingSystem": "Web",
+      "inLanguage": "ko-KR",
+      "description": "도쿄·오사카·교토·후쿠오카·삿포로 134곳 큐레이션. 날짜만 입력하면 최적 동선 일정표가 자동으로 완성되는 무료 일본 자유여행 플래너.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" },
+      "featureList": [
+        "최적 동선 자동 계산",
+        "정기 휴무일·영업시간 충돌 경고",
+        "실시간 대중교통 경로 안내",
+        "월별 날씨 가이드",
+        "숙박·교통·입장료 예산 자동 합산",
+        "인스타그램 캐러셀 카드 내보내기",
+        "일정 링크 공유"
+      ]
+    },
+    {
+      "@type": "ItemList",
+      "name": "PingClab 일본 여행 도시",
+      "itemListOrder": "https://schema.org/ItemListOrderDescending",
+      "numberOfItems": 5,
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "item": { "@type": "City", "name": "도쿄", "alternateName": "Tokyo", "address": { "@type": "PostalAddress", "addressCountry": "JP" } } },
+        { "@type": "ListItem", "position": 2, "item": { "@type": "City", "name": "오사카", "alternateName": "Osaka", "address": { "@type": "PostalAddress", "addressCountry": "JP" } } },
+        { "@type": "ListItem", "position": 3, "item": { "@type": "City", "name": "교토", "alternateName": "Kyoto", "address": { "@type": "PostalAddress", "addressCountry": "JP" } } },
+        { "@type": "ListItem", "position": 4, "item": { "@type": "City", "name": "후쿠오카", "alternateName": "Fukuoka", "address": { "@type": "PostalAddress", "addressCountry": "JP" } } },
+        { "@type": "ListItem", "position": 5, "item": { "@type": "City", "name": "삿포로", "alternateName": "Sapporo", "address": { "@type": "PostalAddress", "addressCountry": "JP" } } }
+      ]
+    }
+  ]
+}
+</script>
+
+<script type="module">
+/*APP*/
+</script>
+</body>
+</html>
