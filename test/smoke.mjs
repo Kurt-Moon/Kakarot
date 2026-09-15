@@ -28,7 +28,14 @@ const VENDOR = {
   '/vendor/react-dom.js': 'node_modules/react-dom/umd/react-dom.production.min.js',
 };
 
+const guide = readFileSync(new URL('guide.html', ROOT), 'utf8');
+
 const server = createServer((req, res) => {
+  if (req.url.startsWith('/guide.html')) {
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    res.end(guide);
+    return;
+  }
   const vendor = VENDOR[req.url];
   if (vendor) {
     res.writeHead(200, { 'content-type': 'application/javascript' });
@@ -74,10 +81,37 @@ await step('JS 없이도 본문이 보인다 (SEO)', async () => {
   if (len < 500 || h2 < 3) throw new Error(`본문 ${len}자 / h2 ${h2}개 — 정적 콘텐츠가 부족합니다`);
 });
 
+await step('이용방법 가이드가 색인 가능한 페이지다', async () => {
+  const ctx = await browser.newContext({ javaScriptEnabled: false });
+  const p2 = await ctx.newPage();
+  const resp = await p2.goto(`http://127.0.0.1:${server.address().port}/guide.html`, { waitUntil: 'domcontentloaded' });
+  const h2 = await p2.locator('h2').count();
+  const len = (await p2.evaluate(() => document.body.innerText || '')).trim().length;
+  const ld = await p2.evaluate(() => [...document.querySelectorAll('script[type="application/ld+json"]')]
+    .flatMap(e => (JSON.parse(e.textContent)['@graph'] || []).map(g => g['@type'])));
+  const canonical = await p2.getAttribute('link[rel=canonical]', 'href');
+  await ctx.close();
+  if (!resp.ok()) throw new Error('응답 실패');
+  if (h2 < 9) throw new Error(`단계 h2 ${h2}개`);
+  if (len < 2000) throw new Error(`본문 ${len}자`);
+  for (const t of ['HowTo', 'FAQPage', 'BreadcrumbList'])
+    if (!ld.includes(t)) throw new Error(`${t} 스키마 없음 (${ld.join(',')})`);
+  if (!canonical) throw new Error('canonical 없음');
+});
+
+await step('홈에서 가이드로 가는 실제 링크가 있다', async () => {
+  const ctx = await browser.newContext({ javaScriptEnabled: false });
+  const p2 = await ctx.newPage();
+  await p2.goto(`http://127.0.0.1:${server.address().port}/`, { waitUntil: 'domcontentloaded' });
+  const n = await p2.locator('a[href="/guide.html"]').count();
+  await ctx.close();
+  if (!n) throw new Error('크롤러가 따라갈 링크 없음');
+});
+
 await step('React 마운트 후 홈 렌더', async () => {
   await page.waitForSelector('.city-card');
   const t = await page.textContent('.sec-title');
-  if (!t.includes('이용방법')) throw new Error('홈 섹션 없음: ' + t);
+  if (!t.includes('PingClab이란')) throw new Error('홈 섹션 없음: ' + t);
 });
 
 await step('도시 카드 → 셋업 진입', async () => {

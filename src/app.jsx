@@ -810,10 +810,20 @@ function TimelineView({slots,tripStartDate,dayOffset}){
   );
 }
 
-function PlaceCardSm({place,isSelected,onClick}){
+function PlaceCardSm({place,isSelected,onClick,onDragStart}){
   const emoji=CAT_EMOJI[place.category]||'📍';
   return(
-    <div className={`place-card${isSelected?' selected':''}`} onClick={()=>onClick(place)}>
+    <div
+      className={`place-card${isSelected?' selected':''}`}
+      onClick={()=>onClick(place)}
+      draggable
+      onDragStart={e=>{
+        e.dataTransfer.effectAllowed='copy';
+        e.dataTransfer.setData('text/plain',place.id);
+        if(onDragStart)onDragStart(place);
+      }}
+      style={{cursor:'grab'}}
+    >
       <div className="place-card-top">
         <div className="place-img">{emoji}</div>
         <div className="place-info">
@@ -945,6 +955,7 @@ function App(){
   const[editingTime,setEditingTime]=useState(null);
   const[dragFrom,setDragFrom]=useState(null);
   const[dragOver,setDragOver]=useState(null);
+  const[dragSbPlace,setDragSbPlace]=useState(null); // 사이드바→슬롯 드래그
   const[realTransit,setRealTransit]=useState({});
   const transitCache=useRef({});
   const[placeHoursMap,setPlaceHoursMap]=useState({});
@@ -954,6 +965,30 @@ function App(){
   const[searching,setSearching]=useState(false);
   const searchTimer=useRef(null);
   const[ratesDate,setRatesDate]=useState(null);
+
+  // ── 브라우저 뒤로가기 / 앞으로가기 ─────────────────
+  const pushNav=useCallback((v,step=1)=>{
+    history.pushState({view:v,step},'',location.pathname+(v==='home'?'':v==='setup'?'#setup':'#planner'));
+  },[]);
+
+  const goToView=useCallback((v,step=1)=>{
+    setView(v);
+    if(v==='setup')setSetupStep(step);
+    pushNav(v,step);
+  },[pushNav]);
+
+  useEffect(()=>{
+    // 초기 state 설정
+    history.replaceState({view:'home',step:1},'',location.pathname);
+    const onPop=(e)=>{
+      const s=e.state;
+      if(!s)return;
+      setView(s.view||'home');
+      if(s.view==='setup')setSetupStep(s.step||1);
+    };
+    window.addEventListener('popstate',onPop);
+    return()=>window.removeEventListener('popstate',onPop);
+  },[]);
 
   // ── Firebase 연결 (지연 로드) ────────────────────
   // SDK 를 내려받고 인증 리스너를 한 번만 등록한다.
@@ -986,7 +1021,7 @@ function App(){
     let signedInBefore=false;
     try{ signedInBefore=localStorage.getItem(AUTH_HINT_KEY)==='1'; }catch(e){}
     // 공유 링크로 들어왔거나 예전에 로그인한 적이 있을 때만 Firebase 를 내려받는다.
-    // 그 외 일반 방문자는 Firebase SDK(약 450KB)를 전혀 받지 않는다.
+    // 그 외 일반 방문자는 Firebase SDK(약 494KB)를 전혀 받지 않는다.
     if(!planId&&!signedInBefore) return;
 
     let disposed=false;
@@ -1322,6 +1357,7 @@ function App(){
     setSchedule(s);
     setActiveDay(0);
     setView('planner');
+    pushNav('planner');
     openPlanner();
   };
 
@@ -1337,6 +1373,7 @@ function App(){
     setHotelAreas(s.hotelAreas||{});
     setShowResume(false);
     setView('planner');
+    pushNav('planner');
     setActiveDay(0);
     openPlanner();
   };
@@ -1502,6 +1539,11 @@ function App(){
   };
 
   const handleLogin=()=>{ ensureFirebase(); setShowAuthModal(true); };
+
+  // 이용방법 가이드는 /guide.html 라는 독립된 페이지다 (src/guide.html).
+  // 예전에는 window.open + document.write 로 만든 팝업이라 URL 도 없고
+  // 검색엔진에도 잡히지 않았다. 지금은 홈에서 실제 링크로 연결한다.
+  const GUIDE_URL='/guide.html';
   const loginWithGoogle=async()=>{
     await connectFirebase();
     const auth=getAuth();
@@ -1920,7 +1962,7 @@ function App(){
       <nav className="home-nav">
         <div className="nav-logo">Ping<span>Clab</span></div>
         <div className="home-nav-links">
-          <a onClick={()=>{document.getElementById('how-to')?.scrollIntoView({behavior:'smooth'})}}>이용방법</a>
+          <a href={GUIDE_URL} target="_blank" rel="noopener">📖 이용방법</a>
           <a onClick={()=>{document.getElementById('cities')?.scrollIntoView({behavior:'smooth'})}}>도시 선택</a>
           <a onClick={()=>{document.getElementById('about')?.scrollIntoView({behavior:'smooth'})}}>서비스 소개</a>
         </div>
@@ -1931,7 +1973,7 @@ function App(){
               <button className="home-login-btn" style={{background:'rgba(255,255,255,.15)'}} onClick={()=>setShowMyPlans(true)}>내 일정</button>
             </div>
           ):(
-            <button className="home-login-btn" onClick={handleLogin}>🔑 로그인</button>
+            <button className="home-login-btn" onClick={handleLogin}>로그인</button>
           )}
         </div>
       </nav>
@@ -1951,43 +1993,24 @@ function App(){
         <div className="hero-content" style={{maxWidth:800,margin:'0 auto',position:'relative',zIndex:1}}>
           <div className="hero-logo">Ping<span>Clab</span></div>
           <p className="hero-sub">동선·날씨·예산까지 — 나만의 완벽한 일본 여행을 만들어보세요 ✈️</p>
-          <div className="hero-search">
-            <span className="si">🔍</span>
-            <input type="text" placeholder="도시를 검색하세요 (도쿄, 오사카, 교토, 후쿠오카, 삿포로)" value={searchQ} onChange={e=>setSearchQ(e.target.value)} onFocus={()=>{}} />
-            {searchQ&&(
-              <div className="search-drop">
-                {CITIES.filter(c=>c.name.includes(searchQ)||c.country.includes(searchQ)).map(c=>(
-                  <div key={c.id} className="sdrop-item" onClick={()=>{setSelectedCity(c);setSearchQ('');setView('setup');setSetupStep(2);}}>
-                    <span style={{fontSize:'1.5rem'}}>{c.emoji}</span>
-                    <div><div style={{fontWeight:700}}>{c.name}</div><div style={{fontSize:'.78rem',opacity:.6}}>{c.country}</div></div>
-                    <span style={{marginLeft:'auto',color:'var(--coral)',fontWeight:700,fontSize:'.8rem'}}>일정 짜기 →</span>
-                  </div>
-                ))}
-                {!CITIES.filter(c=>c.name.includes(searchQ)||c.country.includes(searchQ)).length&&(
-                  <div style={{padding:'1.2rem',color:'var(--t3)',textAlign:'center',fontSize:'.88rem'}}>검색 결과가 없어요</div>
-                )}
-              </div>
-            )}
-          </div>
         </div>
       </section>
 
-      {/* ── 이용방법 ── */}
-      <section id="how-to" className="sec" style={{background:'#f8f9ff',paddingTop:'4rem',paddingBottom:'4rem'}}>
+      {/* ── 서비스 소개 (이용방법 자리로 이동) ── */}
+      <section id="about" className="sec" style={{background:'#f8f9ff',paddingTop:'4rem',paddingBottom:'4rem'}}>
         <div className="container">
           <div className="sec-hd">
-            <div className="sec-title">🗺️ 이용방법</div>
-            <div className="sec-sub">3단계로 완성하는 일본 여행 일정</div>
+            <div className="sec-title">🦀 PingClab이란?</div>
+            <div className="sec-sub">핑크랩이 일본 여행의 모든 고민을 해결합니다</div>
           </div>
           <div className="how-to-grid">
             {[
-              {n:1,icon:'🏙️',t:'도시 선택',d:'도쿄·오사카·교토·후쿠오카·삿포로 중 여행할 도시를 고르세요'},
-              {n:2,icon:'📅',t:'기간·날짜 설정',d:'여행 일수와 출발일을 설정하면 복귀일이 자동 계산됩니다'},
-              {n:3,icon:'✨',t:'일정 자동 생성',d:'큐레이션된 장소들로 최적 동선 일정이 1초 만에 완성됩니다'},
-              {n:4,icon:'✏️',t:'편집·저장·공유',d:'드래그로 순서 변경, 장소 추가·삭제, 링크 공유까지 무료'},
-            ].map(({n,icon,t,d})=>(
-              <div key={n} className="how-to-card">
-                <div className="how-to-num">{n}</div>
+              {icon:'📍',t:'Ping만 찍으세요',d:'가고 싶은 곳에 핑만 찍으면 동선·휴무·이동시간을 자동으로 최적화합니다'},
+              {icon:'🗓️',t:'휴무 걱정 끝',d:'각 장소의 정기 휴무일을 DB로 관리해 일정 충돌을 사전 차단합니다'},
+              {icon:'💴',t:'예산 한눈에',d:'숙박·교통·입장료를 자동 합산해 여행 전 예산을 쉽게 파악할 수 있어요'},
+              {icon:'📱',t:'인스타 카드',d:'완성 일정을 인스타그램 캐러셀 카드로 바로 저장해 친구들과 공유하세요'},
+            ].map(({icon,t,d})=>(
+              <div key={t} className="how-to-card">
                 <div className="how-to-icon">{icon}</div>
                 <div className="how-to-ttl">{t}</div>
                 <div className="how-to-desc">{d}</div>
@@ -2005,7 +2028,7 @@ function App(){
           </div>
           <div className="city-grid">
             {CITIES.map(c=>(
-              <div key={c.id} className="city-card" onClick={()=>{setSelectedCity(c);setView('setup');setSetupStep(2);}}>
+              <div key={c.id} className="city-card" onClick={()=>{setSelectedCity(c);goToView('setup',2);}}>
                 <div className="badge-avail">✓ 지금 계획하기</div>
                 <img src={c.image} alt={c.name} loading="lazy" onError={e=>{e.target.onerror=null;e.target.style.cssText="background:var(--bg);height:160px;display:block;width:100%";e.target.removeAttribute("src");}}/>
                 <div className="city-card-body">
@@ -2031,7 +2054,7 @@ function App(){
               <div className="region-label">{region.label}</div>
               <div className="chips">
                 {region.countries.map(c=>(
-                  <div key={c.name} className={`chip${c.avail?'':' disabled'}`} onClick={()=>{if(!c.avail){alert(c.name+' 준비 중! 곧 오픈합니다 🚀');return;}setSelectedCity(null);setView('setup');setSetupStep(1);}}>
+                  <div key={c.name} className={`chip${c.avail?'':' disabled'}`} onClick={()=>{if(!c.avail){alert(c.name+' 준비 중! 곧 오픈합니다 🚀');return;}setSelectedCity(null);goToView('setup',1);}}>
                     <span>{c.emoji}</span><span>{c.name}</span>
                     {c.avail?<span className="chip-cnt">5개 도시</span>:<span className="chip-soon">준비중</span>}
                   </div>
@@ -2042,29 +2065,6 @@ function App(){
         </div>
       </section>
 
-      {/* ── 서비스 소개 ── */}
-      <section id="about" className="sec sec-white" style={{paddingBottom:'5rem'}}>
-        <div className="container">
-          <div className="sec-hd">
-            <div className="sec-title">🦀 PingClab이란?</div>
-            <div className="sec-sub">핑크랩이 일본 여행의 모든 고민을 해결합니다</div>
-          </div>
-          <div className="how-to-grid">
-            {[
-              {icon:'📍',t:'Ping만 찍으세요',d:'가고 싶은 곳에 핑만 찍으면 동선·휴무·이동시간을 자동으로 최적화합니다'},
-              {icon:'🗓️',t:'휴무 걱정 끝',d:'각 장소의 정기 휴무일을 DB로 관리해 일정 충돌을 사전 차단합니다'},
-              {icon:'💴',t:'예산 한눈에',d:'숙박·교통·입장료를 자동 합산해 여행 전 예산을 쉽게 파악할 수 있어요'},
-              {icon:'📱',t:'인스타 카드',d:'완성 일정을 인스타그램 캐러셀 카드로 바로 저장해 친구들과 공유하세요'},
-            ].map(({icon,t,d})=>(
-              <div key={t} className="how-to-card">
-                <div className="how-to-icon">{icon}</div>
-                <div className="how-to-ttl">{t}</div>
-                <div className="how-to-desc">{d}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
     </>
   );
 
@@ -2072,7 +2072,7 @@ function App(){
   if(view==='setup') return(
     <div className="setup-wrap">
       <div className="setup-panel">
-        <button className="btn-back" onClick={()=>setupStep===1?setView('home'):setSetupStep(s=>s-1)}>← {setupStep===1?'홈으로':'이전'}</button>
+        <button className="btn-back" onClick={()=>{if(setupStep===1){goToView('home');}else{const ns=setupStep-1;setSetupStep(ns);pushNav('setup',ns);}}}>← {setupStep===1?'홈으로':'이전'}</button>
         <div className="step-bar">{[1,2,3].map(s=><div key={s} className={`step-dot${s<=setupStep?' done':''}`}/>)}</div>
 
         {setupStep===1&&(
@@ -2089,7 +2089,7 @@ function App(){
                 </div>
               ))}
             </div>
-            <button className="btn-main" disabled={!selectedCity} onClick={()=>setSetupStep(2)}>다음 → 일정 설정</button>
+            <button className="btn-main" disabled={!selectedCity} onClick={()=>{setSetupStep(2);pushNav('setup',2);}}>다음 → 일정 설정</button>
           </>
         )}
 
@@ -2120,21 +2120,18 @@ function App(){
                 <span style={{fontSize:'.95rem',fontWeight:700,color:'var(--navy)'}}>일 ({durationDays-1}박 {durationDays}일)</span>
               </div>
             )}
-            <div className="date-row">
-              <label>출발일</label>
-              <input type="date" value={tripStartDate} onChange={e=>setTripStartDate(e.target.value)} min={new Date().toISOString().slice(0,10)}/>
-              {weatherInfo&&(
-                <span className="weather-pill" style={{marginLeft:'auto'}}>{weatherInfo.icon} {tripStartDate?'':'이번달 '}{weatherInfo.note}</span>
-              )}
-            </div>
-            {tripStartDate&&(
+            <div className="date-duo">
+              <div className="date-row">
+                <label>출발일</label>
+                <input type="date" value={tripStartDate} onChange={e=>setTripStartDate(e.target.value)} min={new Date().toISOString().slice(0,10)}/>
+              </div>
               <div className="return-date-row">
                 <label>복귀일</label>
-                <span>{formatDate(tripStartDate,durationDays-1)}</span>
-                <span style={{marginLeft:'auto',fontSize:'.8rem',color:'var(--t2)'}}>{durationDays-1}박 {durationDays}일</span>
+                <span>{tripStartDate?formatDate(tripStartDate,durationDays-1):'—'}</span>
+                {tripStartDate&&<span style={{marginLeft:'auto',fontSize:'.8rem',color:'var(--t2)'}}>{durationDays-1}박 {durationDays}일</span>}
               </div>
-            )}
-            <button className="btn-main" onClick={()=>setSetupStep(3)}>다음 → 미리보기</button>
+            </div>
+            <button className="btn-main" onClick={()=>{setSetupStep(3);pushNav('setup',3);}}>다음 → 미리보기</button>
           </>
         )}
 
@@ -2189,7 +2186,7 @@ function App(){
       {optimizeMsg&&<div style={{position:'fixed',bottom:'1.5rem',left:'50%',transform:'translateX(-50%)',background:'var(--navy)',color:'#fff',padding:'.75rem 1.375rem',borderRadius:'var(--r)',boxShadow:'var(--shadow2)',fontSize:'.85rem',fontWeight:600,zIndex:600,whiteSpace:'nowrap'}}>{optimizeMsg}</div>}
       {/* Navbar */}
       <nav className="navbar">
-        <div className="nav-logo" onClick={()=>setView('home')}>Ping<span>Clab</span></div>
+        <div className="nav-logo" onClick={()=>goToView('home')}>Ping<span>Clab</span></div>
         <div className="nav-center">
           <span className="nav-city">{selectedCity?.emoji} {selectedCity?.name}</span>
           <span className="nav-dates">{durationDays-1}박 {durationDays}일{tripStartDate?` · ${formatDate(tripStartDate,0)}`:''}</span>
@@ -2342,7 +2339,7 @@ function App(){
 
           <div className="sidebar-list">
             {filteredPlaces.length===0&&<div style={{textAlign:'center',color:'var(--t3)',padding:'2rem 0',fontSize:'.85rem'}}>검색 결과가 없어요</div>}
-            {filteredPlaces.map(p=><PlaceCardSm key={p.id} place={p} isSelected={selectedSbPlace?.id===p.id} onClick={handleSbPlaceClick}/>)}
+            {filteredPlaces.map(p=><PlaceCardSm key={p.id} place={p} isSelected={selectedSbPlace?.id===p.id} onClick={handleSbPlaceClick} onDragStart={p=>setDragSbPlace(p)}/>)}
           </div>
 
           {!showCustomForm?(
@@ -2488,7 +2485,7 @@ function App(){
                           onDragStart={e=>handleSlotDragStart(e,slotIdx)}
                           onDragOver={e=>handleSlotDragOver(e,slotIdx)}
                           onDrop={e=>handleSlotDrop(e,slotIdx)}
-                          onDragEnd={()=>{setDragFrom(null);setDragOver(null);}}
+                          onDragEnd={()=>{setDragFrom(null);setDragOver(null);setDragSbPlace(null);}}
                           style={{opacity:dragFrom===slotIdx?.55:1,outline:dragOver===slotIdx?"2px dashed var(--coral)":"",outlineOffset:2,borderRadius:"var(--r)",transition:"opacity .15s"}}>
                             <div className="slot-time-col">
                               {slot.item&&!slot.fixed&&<div style={{textAlign:"center",color:"var(--t3)",fontSize:".8rem",cursor:"grab",lineHeight:1,marginBottom:".15rem"}} title="드래그해서 순서 변경">⠿</div>}
@@ -2498,8 +2495,17 @@ function App(){
                                 :<div className="slot-time" title="클릭해서 시간 수정" style={{cursor:'pointer'}} onClick={e=>{e.stopPropagation();setEditingTime({dayIdx:activeDay,slotIdx});}}>{slot.time}</div>}
                             </div>
                             <div
-                              className={`slot-item${isHotel?' hotel-slot':isEmpty?(isReadyForPlace?' empty ready':' empty'):' filled'}${isSelSwap?' sel-swap':''}${isHighlighted?' highlighted':''}${slot.item&&visitedIds.has(slot.item.id)?' visited':''}${moveMode?.dayIdx===activeDay&&moveMode?.slotIdx===slotIdx?' move-source':''}`}
+                              className={`slot-item${isHotel?' hotel-slot':isEmpty?(isReadyForPlace||dragSbPlace?' empty ready':' empty'):' filled'}${isSelSwap?' sel-swap':''}${isHighlighted?' highlighted':''}${slot.item&&visitedIds.has(slot.item.id)?' visited':''}${moveMode?.dayIdx===activeDay&&moveMode?.slotIdx===slotIdx?' move-source':''}`}
                               onClick={()=>handleSlotClick(activeDay,slotIdx,slot)}
+                              onDragOver={e=>{if(dragSbPlace&&!isHotel){e.preventDefault();e.dataTransfer.dropEffect='copy';}}}
+                              onDrop={e=>{
+                                if(!dragSbPlace||isHotel)return;
+                                e.preventDefault();
+                                pushUndo(schedule);
+                                setSchedule(prev=>prev.map((d,di)=>di!==activeDay?d:{...d,slots:d.slots.map((s,si)=>si!==slotIdx?s:{...s,item:dragSbPlace})}));
+                                setDragSbPlace(null);
+                              }}
+                              onDragEnter={e=>{if(dragSbPlace&&!isHotel)e.preventDefault();}}
                             >
                               {isHotel?(
                                 <div>
@@ -2518,9 +2524,9 @@ function App(){
                                 </div>
                               ):isEmpty?(
                                 <div style={{textAlign:'center',padding:'.5rem 0'}}>
-                                  <div style={{fontSize:'1.25rem',marginBottom:'.15rem'}}>{isReadyForPlace?'👆':'+'}</div>
-                                  <div style={{fontSize:'.78rem',fontWeight:600}}>{isReadyForPlace?'여기에 배치':'장소 추가'}</div>
-                                  {!isReadyForPlace&&<div style={{fontSize:'.7rem',opacity:.7,marginTop:'.1rem'}}>사이드바에서 선택</div>}
+                                  <div style={{fontSize:'1.25rem',marginBottom:'.15rem'}}>{(isReadyForPlace||dragSbPlace)?'👆':'+'}</div>
+                                  <div style={{fontSize:'.78rem',fontWeight:600}}>{(isReadyForPlace||dragSbPlace)?'여기에 놓기':'장소 추가'}</div>
+                                  {!(isReadyForPlace||dragSbPlace)&&<div style={{fontSize:'.7rem',opacity:.7,marginTop:'.1rem'}}>탭 or 드래그</div>}
                                 </div>
                               ):(
                                 <>

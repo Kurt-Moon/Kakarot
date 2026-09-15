@@ -4,6 +4,7 @@
  *   src/_head.html + src/_style.html + src/_body.html  →  HTML 셸
  *   src/app.jsx                                        →  esbuild 로 JSX 변환·압축
  *   두 결과를 합쳐 배포용 index.html 한 장을 만든다.
+ *   src/guide.html                                     →  guide.html (그대로 복사)
  *
  *   실행:  npm run build
  *
@@ -37,5 +38,11 @@ if (out === html) throw new Error('빌드 실패: /*APP*/ 자리표시자를 찾
 
 writeFileSync(new URL('./index.html', import.meta.url), out);
 
+// 이용방법 가이드는 독립된 정적 페이지다. 검색엔진이 색인할 수 있도록
+// 앱 번들과 섞지 않고 그대로 내보낸다.
+const guide = read('./src/guide.html');
+writeFileSync(new URL('./guide.html', import.meta.url), guide);
+
 const kb = (n) => (n / 1024).toFixed(1) + 'KB';
 console.log(`✅ index.html  ${kb(Buffer.byteLength(out))}  (앱 ${kb(Buffer.byteLength(app))})`);
+console.log(`✅ guide.html  ${kb(Buffer.byteLength(guide))}`);

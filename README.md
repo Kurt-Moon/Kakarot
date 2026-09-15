@@ -10,9 +10,13 @@ src/_head.html     <head> — 메타·구조화 데이터·폰트·React
 src/_style.html    전체 CSS
 src/_body.html     <body> 셸 — 정적 SEO 콘텐츠 + JSON-LD + 앱 자리표시자
 src/app.jsx        React 앱 본체
-build.mjs          위 넷을 합쳐 index.html 한 장으로 만드는 빌드
+src/guide.html     이용방법 가이드 (독립된 정적 페이지)
+build.mjs          위 파일들로 index.html + guide.html 을 만드는 빌드
 index.html         배포 산출물 (직접 고치지 말 것 — 빌드가 덮어쓴다)
-test/smoke.mjs     핵심 흐름 스모크 테스트
+guide.html         배포 산출물
+robots.txt         색인 규칙 (공유 링크 ?plan= 은 제외)
+sitemap.xml        색인 대상 URL
+test/smoke.mjs     핵심 흐름 + SEO 스모크 테스트
 ```
 
 ## 개발
@@ -55,8 +59,19 @@ JSX 는 브라우저가 아니라 **빌드 시점에** esbuild 로 변환한다.
 
 > `src/app.jsx` 의 홈 화면 문구를 고치면 `src/_body.html` 도 함께 고칠 것.
 > 둘이 어긋나면 크롤러가 보는 내용과 사용자가 보는 내용이 달라진다.
+> `npm test` 가 둘 다 확인한다.
 
 구조화 데이터(JSON-LD)는 `src/_body.html` 하단에 있다.
+
+### 이용방법 가이드
+
+`/guide.html` 은 독립된 정적 페이지다. 예전에는 `window.open` +
+`document.write` 로 띄우는 팝업이라 URL 이 없었고, 그래서 3,000자가 넘는
+내용이 검색엔진에 전혀 잡히지 않았다. 지금은 홈에서 실제 `<a href>` 로
+연결하고 사이트맵에도 넣는다.
+
+9단계 본문에서 `HowTo`, FAQ 에서 `FAQPage` 구조화 데이터를 자동으로
+생성한다 — 본문을 고치면 스키마도 같이 고칠 것.
 
 ## 키 관리
 
